@@ -9,7 +9,9 @@ import ForgotPassword from './pages/ForgotPassword';
 import AdminPanel from './pages/AdminPanel';
 import About from './pages/About';
 import Contact from './pages/Contact';
-import Help from './pages/Help'; // New import
+import Help from './pages/Help';
+import Cart from './pages/Cart';
+import Category from './pages/Category'; // New import
 
 const App = () => {
   return (
@@ -22,7 +24,9 @@ const App = () => {
         <Route path="/AdminPanel" element={<MainLayout><AdminPanel /></MainLayout>} />
         <Route path="/About" element={<MainLayout><About /></MainLayout>} />
         <Route path="/Contact" element={<MainLayout><Contact /></MainLayout>} />
-        <Route path="/Help" element={<MainLayout><Help /></MainLayout>} /> {/* New route */}
+        <Route path="/Help" element={<MainLayout><Help /></MainLayout>} />
+        <Route path="/Cart" element={<MainLayout><Cart /></MainLayout>} />
+        <Route path="/Category" element={<MainLayout><Category /></MainLayout>} /> {/* New route */}
         <Route path="*" element={<MainLayout><div>404 - Page Not Found</div></MainLayout>} />
       </Routes>
     </AuthProvider>
