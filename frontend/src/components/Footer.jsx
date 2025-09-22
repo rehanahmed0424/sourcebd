@@ -9,7 +9,7 @@ const Footer = () => {
           <div className="footer-column">
             <h3>SourceBd</h3>
             <ul className="footer-links">
-              <li><Link to="/about">About Us</Link></li>
+              <li><Link to="/About">About Us</Link></li>
               <li><Link to="#">How It Works</Link></li>
               <li><Link to="#">Success Stories</Link></li>
               <li><Link to="#">Careers</Link></li>

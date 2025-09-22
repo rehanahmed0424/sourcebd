@@ -16,7 +16,7 @@ const Header = () => {
           <div className="header-actions">
             <Link to="/login"><i className="fas fa-user"></i> Sign In</Link>
             <Link to="/cart"><i className="fas fa-shopping-cart"></i> Cart</Link>
-            <Link to="/help"><i className="fas fa-question-circle"></i> Help</Link>
+            <Link to="/Help"><i className="fas fa-question-circle"></i> Help</Link> {/* Changed from /help to /Help */}
           </div>
         </div>
       </div>
