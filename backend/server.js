@@ -1,12 +1,22 @@
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
+const bcrypt = require('bcryptjs');
 
+// Initialize express app FIRST
 const app = express();
-app.use(cors({ origin: 'http://localhost:5173' })); // Allow frontend origin
-app.use('/uploads', express.static('uploads')); // Serve uploaded images
+
+// Middleware setup
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cors({ 
+  origin: 'http://localhost:5173',
+  credentials: true 
+}));
+app.use('/uploads', express.static('uploads'));
 
 // Multer setup for file uploads
 const storage = multer.diskStorage({
@@ -16,6 +26,27 @@ const storage = multer.diskStorage({
   },
 });
 const upload = multer({ storage });
+
+// MongoDB connection
+mongoose.connect('mongodb+srv://sourcebduser:sourcebdpass@cluster0.uzynynf.mongodb.net/sourcebd?retryWrites=true&w=majority', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+  .then(() => console.log('✅ Connected to MongoDB'))
+  .catch(err => console.error('❌ MongoDB connection error:', err));
+
+// User Model
+const userSchema = new mongoose.Schema({
+  firstName: { type: String, required: true },
+  lastName: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  phone: { type: String, required: true },
+  country: { type: String, default: 'Bangladesh' },
+  password: { type: String, required: true },
+  userType: { type: String, enum: ['buyer', 'supplier'], default: 'buyer' },
+  createdAt: { type: Date, default: Date.now }
+});
+const User = mongoose.model('User', userSchema);
 
 // Category Model
 const categorySchema = new mongoose.Schema({
@@ -43,6 +74,93 @@ const testimonialSchema = new mongoose.Schema({
   author: String,
 });
 const Testimonial = mongoose.model('Testimonial', testimonialSchema);
+
+// ===== ROUTES =====
+
+// Registration endpoint
+app.post('/api/register', async (req, res) => {
+  try {
+    console.log('Registration attempt:', req.body);
+    
+    const { firstName, lastName, email, phone, country, password, confirmPassword } = req.body;
+
+    // Validation
+    if (!firstName || !lastName || !email || !phone || !password) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({ error: 'Passwords do not match' });
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ error: 'User already exists with this email' });
+    }
+
+    // Hash password
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    // Create new user
+    const newUser = new User({
+      firstName,
+      lastName,
+      email,
+      phone,
+      country,
+      password: hashedPassword
+    });
+
+    await newUser.save();
+
+    res.status(201).json({ 
+      message: 'User registered successfully', 
+      user: {
+        id: newUser._id,
+        firstName: newUser.firstName,
+        email: newUser.email
+      }
+    });
+
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Login endpoint
+app.post('/api/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // Find user
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ error: 'Invalid email or password' });
+    }
+
+    // Check password
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ error: 'Invalid email or password' });
+    }
+
+    res.json({ 
+      message: 'Login successful',
+      user: {
+        id: user._id,
+        firstName: user.firstName,
+        email: user.email
+      }
+    });
+
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 // GET endpoints
 app.get('/api/categories', async (req, res) => {
@@ -74,7 +192,7 @@ app.get('/api/testimonials', async (req, res) => {
 
 // POST endpoints
 app.post('/api/categories', upload.none(), (req, res) => {
-  console.log('Received body:', req.body); // Debug log
+  console.log('Received body:', req.body);
   try {
     const { name, description, items } = req.body;
     if (!name || !items) {
@@ -90,7 +208,7 @@ app.post('/api/categories', upload.none(), (req, res) => {
 });
 
 app.post('/api/products', upload.single('image'), (req, res) => {
-  console.log('Received body:', req.body); // Debug log
+  console.log('Received body:', req.body);
   try {
     const { name, supplier, priceRange, moq, categoryId, verified } = req.body;
     if (!name || !categoryId) {
@@ -122,7 +240,7 @@ app.post('/api/products', upload.single('image'), (req, res) => {
 });
 
 app.post('/api/testimonials', upload.none(), (req, res) => {
-  console.log('Received body:', req.body); // Debug log
+  console.log('Received body:', req.body);
   try {
     const { text, author } = req.body;
     if (!text) {
@@ -137,13 +255,5 @@ app.post('/api/testimonials', upload.none(), (req, res) => {
   }
 });
 
-// MongoDB connection
-mongoose.connect('mongodb://localhost:27017/sourcebd', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-  .then(() => console.log('Connected to MongoDB'))
-  .catch(err => console.error('MongoDB connection error:', err));
-
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
