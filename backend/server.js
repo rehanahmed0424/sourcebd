@@ -6,6 +6,8 @@ const multer = require('multer');
 const path = require('path');
 const bcrypt = require('bcryptjs');
 const fs = require('fs');
+const jwt = require('jsonwebtoken');
+const nodemailer = require('nodemailer');
 
 // Initialize express app FIRST
 const app = express();
@@ -42,7 +44,6 @@ const storage = multer.diskStorage({
     cb(null, uploadsDir);
   },
   filename: (req, file, cb) => {
-    // Keep original extension for better compatibility
     const fileExt = path.extname(file.originalname);
     const fileName = `${Date.now()}-${Math.round(Math.random() * 1E9)}${fileExt}`;
     cb(null, fileName);
@@ -50,7 +51,6 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-  // Check if the file is an image
   if (file.mimetype.startsWith('image/')) {
     cb(null, true);
   } else {
@@ -62,7 +62,7 @@ const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
+    fileSize: 5 * 1024 * 1024,
   }
 });
 
@@ -90,15 +90,26 @@ const userSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', userSchema);
 
-// Updated Category Model (removed items, added image)
+// OTP Model for password reset
+const otpSchema = new mongoose.Schema({
+  email: { type: String, required: true },
+  otp: { type: String, required: true },
+  expiresAt: { type: Date, required: true },
+  createdAt: { type: Date, default: Date.now }
+});
+
+otpSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+const OTP = mongoose.model('OTP', otpSchema);
+
+// Category Model
 const categorySchema = new mongoose.Schema({
   name: { type: String, required: true },
   description: String,
-  image: String, // Added image field
+  image: String,
 });
 const Category = mongoose.model('Category', categorySchema);
 
-// Updated Product Model with featured field
+// Product Model
 const productSchema = new mongoose.Schema({
   name: { type: String, required: true },
   supplier: String,
@@ -107,7 +118,7 @@ const productSchema = new mongoose.Schema({
   categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
   image: String,
   verified: { type: Boolean, default: false },
-  featured: { type: Boolean, default: false }, // Added featured field
+  featured: { type: Boolean, default: false },
 });
 const Product = mongoose.model('Product', productSchema);
 
@@ -118,6 +129,202 @@ const testimonialSchema = new mongoose.Schema({
 });
 const Testimonial = mongoose.model('Testimonial', testimonialSchema);
 
+// JWT Secret - Using your existing secret
+const JWT_SECRET = process.env.JWT_SECRET || 'sourcebd-jwt-secret-2024';
+
+// Generate JWT Token
+const generateToken = (user) => {
+  return jwt.sign(
+    { 
+      userId: user._id,
+      email: user.email 
+    },
+    JWT_SECRET,
+    { expiresIn: '7d' }
+  );
+};
+
+// Generate random 6-digit OTP
+const generateOTP = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+// Email Configuration - Using Brevo (formerly Sendinblue)
+const createTransporter = async () => {
+  // If Brevo credentials are provided
+  if (process.env.BREVO_USER && process.env.BREVO_PASS) {
+    console.log('📧 Using Brevo SMTP for email delivery...');
+    return nodemailer.createTransport({
+      host: 'smtp-relay.brevo.com',
+      port: 587,
+      secure: false,
+      auth: {
+        user: process.env.BREVO_USER,
+        pass: process.env.BREVO_PASS
+      }
+    });
+  }
+  
+  // Fallback to Ethereal for testing
+  console.log('🔧 Creating Ethereal test email account (fallback)...');
+  const testAccount = await nodemailer.createTestAccount();
+  console.log('✅ Ethereal account created:');
+  console.log('   📧 Email:', testAccount.user);
+  console.log('   🔐 Password:', testAccount.pass);
+  console.log('   🌐 Web: https://ethereal.email');
+  
+  return nodemailer.createTransport({
+    host: 'smtp.ethereal.email',
+    port: 587,
+    secure: false,
+    auth: {
+      user: testAccount.user,
+      pass: testAccount.pass
+    }
+  });
+};
+
+// REAL Email Sending Function with Brevo
+const sendOTPEmail = async (email, otp) => {
+  try {
+    console.log('📧 Attempting to send OTP email to:', email);
+    
+    const transporter = await createTransporter();
+    
+    // Verify transporter configuration
+    await transporter.verify();
+    console.log('✅ SMTP connection verified');
+
+    const mailOptions = {
+      from: process.env.EMAIL_FROM || '"SourceBd" <noreply@sourcebd.com>',
+      to: email,
+      subject: 'Password Reset OTP - SourceBd',
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <style>
+                body { 
+                    font-family: Arial, sans-serif; 
+                    background-color: #f5f7f9; 
+                    margin: 0; 
+                    padding: 20px; 
+                    line-height: 1.6;
+                }
+                .container { 
+                    max-width: 600px; 
+                    margin: 0 auto; 
+                    background: white; 
+                    border-radius: 10px; 
+                    overflow: hidden; 
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+                }
+                .header { 
+                    background: #2d4d31; 
+                    color: white; 
+                    padding: 30px; 
+                    text-align: center; 
+                }
+                .header h1 { 
+                    margin: 0; 
+                    font-size: 28px; 
+                }
+                .content { 
+                    padding: 30px; 
+                }
+                .otp-box { 
+                    background: #f8f9fa; 
+                    border: 2px dashed #2d4d31; 
+                    border-radius: 8px; 
+                    padding: 20px; 
+                    text-align: center; 
+                    margin: 20px 0; 
+                }
+                .otp-code { 
+                    font-size: 32px; 
+                    font-weight: bold; 
+                    color: #2d4d31; 
+                    letter-spacing: 5px; 
+                    margin: 15px 0;
+                }
+                .footer { 
+                    background: #f8f9fa; 
+                    padding: 20px; 
+                    text-align: center; 
+                    color: #666; 
+                    font-size: 12px; 
+                }
+                .note {
+                    background: #fff3cd;
+                    border: 1px solid #ffeaa7;
+                    border-radius: 5px;
+                    padding: 15px;
+                    margin: 15px 0;
+                    color: #856404;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <h1>SourceBd</h1>
+                    <p>Bangladesh's Premier B2B Marketplace</p>
+                </div>
+                <div class="content">
+                    <h2>Password Reset Request</h2>
+                    <p>You requested to reset your password for your SourceBd account.</p>
+                    
+                    <div class="otp-box">
+                        <p style="margin: 0 0 15px 0; color: #666;">Your One-Time Password (OTP) is:</p>
+                        <div class="otp-code">${otp}</div>
+                        <p style="margin: 15px 0 0 0; color: #666; font-size: 14px;">This OTP is valid for 10 minutes</p>
+                    </div>
+                    
+                    <div class="note">
+                        <strong>Note:</strong> Enter this code on the password reset page to complete the process.
+                    </div>
+                    
+                    <p>If you didn't request this password reset, please ignore this email and your account will remain secure.</p>
+                </div>
+                <div class="footer">
+                    <p>&copy; 2024 SourceBd. All rights reserved.</p>
+                    <p>This is an automated message, please do not reply to this email.</p>
+                </div>
+            </div>
+        </body>
+        </html>
+      `
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    
+    // For Ethereal emails, show the preview URL
+    if (info.messageId && nodemailer.getTestMessageUrl) {
+      const previewUrl = nodemailer.getTestMessageUrl(info);
+      console.log('✅ OTP email sent successfully to:', email);
+      console.log('📧 Preview URL:', previewUrl);
+      console.log('   (Using Ethereal test inbox)');
+    } else {
+      console.log('✅ OTP email sent successfully to:', email);
+      console.log('📧 Message ID:', info.messageId);
+      console.log('   (Using Brevo - real email delivery)');
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('❌ Email sending failed:', error);
+    
+    // Fallback: Log OTP to console for testing
+    console.log('\n⚠️  Email sending failed! OTP for testing:');
+    console.log(`📧 To: ${email}`);
+    console.log(`🔐 OTP: ${otp}`);
+    console.log('⏰ OTP valid for 10 minutes\n');
+    
+    return false;
+  }
+};
+
 // ===== AUTHENTICATION ROUTES =====
 
 // Registration endpoint
@@ -127,7 +334,6 @@ app.post('/api/register', async (req, res) => {
     
     const { firstName, lastName, email, phone, country, password, confirmPassword } = req.body;
 
-    // Validation
     if (!firstName || !lastName || !email || !phone || !password) {
       return res.status(400).json({ error: 'All fields are required' });
     }
@@ -136,17 +342,18 @@ app.post('/api/register', async (req, res) => {
       return res.status(400).json({ error: 'Passwords do not match' });
     }
 
-    // Check if user already exists
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters long' });
+    }
+
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ error: 'User already exists with this email' });
     }
 
-    // Hash password
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    // Create new user
     const newUser = new User({
       firstName,
       lastName,
@@ -158,12 +365,18 @@ app.post('/api/register', async (req, res) => {
 
     await newUser.save();
 
+    const token = generateToken(newUser);
+
     res.status(201).json({ 
-      message: 'User registered successfully', 
+      message: 'User registered successfully',
+      token,
       user: {
         id: newUser._id,
         firstName: newUser.firstName,
-        email: newUser.email
+        lastName: newUser.lastName,
+        email: newUser.email,
+        phone: newUser.phone,
+        country: newUser.country
       }
     });
 
@@ -178,24 +391,28 @@ app.post('/api/login', async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Find user
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ error: 'Invalid email or password' });
     }
 
-    // Check password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ error: 'Invalid email or password' });
     }
 
+    const token = generateToken(user);
+
     res.json({ 
       message: 'Login successful',
+      token,
       user: {
         id: user._id,
         firstName: user.firstName,
-        email: user.email
+        lastName: user.lastName,
+        email: user.email,
+        phone: user.phone,
+        country: user.country
       }
     });
 
@@ -205,43 +422,173 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
-// ===== CATEGORY ROUTES =====
+// ===== PASSWORD RESET ROUTES =====
 
-// GET all categories
+// Send OTP for password reset
+app.post('/api/forgot-password', async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ error: 'Please provide a valid email address' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      // Return success even if user doesn't exist for security
+      return res.json({ 
+        success: true,
+        message: 'If an account with that email exists, an OTP has been sent.'
+      });
+    }
+
+    const otpCode = generateOTP();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    await OTP.deleteMany({ email });
+
+    const otp = new OTP({
+      email,
+      otp: otpCode,
+      expiresAt
+    });
+
+    await otp.save();
+
+    const emailSent = await sendOTPEmail(email, otpCode);
+
+    if (emailSent) {
+      console.log(`✅ OTP sent successfully to: ${email}`);
+    } else {
+      console.log(`⚠️  OTP email failed for: ${email}, but OTP was saved for testing`);
+    }
+
+    res.json({ 
+      success: true,
+      message: 'If an account with that email exists, an OTP has been sent.'
+    });
+
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ error: 'Failed to send OTP. Please try again.' });
+  }
+});
+
+// Verify OTP
+app.post('/api/verify-otp', async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp || otp.length !== 6) {
+      return res.status(400).json({ 
+        error: 'Please provide a valid email and 6-digit OTP' 
+      });
+    }
+
+    const otpRecord = await OTP.findOne({ 
+      email, 
+      otp,
+      expiresAt: { $gt: new Date() }
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({ 
+        error: 'Invalid or expired OTP. Please request a new one.' 
+      });
+    }
+
+    res.json({ 
+      success: true,
+      message: 'OTP verified successfully' 
+    });
+
+  } catch (error) {
+    console.error('Verify OTP error:', error);
+    res.status(500).json({ error: 'Failed to verify OTP. Please try again.' });
+  }
+});
+
+// Reset password with OTP
+app.post('/api/reset-password', async (req, res) => {
+  try {
+    const { email, otp, newPassword } = req.body;
+
+    if (!email || !otp || !newPassword) {
+      return res.status(400).json({ 
+        error: 'Email, OTP, and new password are required' 
+      });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ 
+        error: 'Password must be at least 8 characters long' 
+      });
+    }
+
+    const otpRecord = await OTP.findOne({ 
+      email, 
+      otp,
+      expiresAt: { $gt: new Date() }
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({ 
+        error: 'Invalid or expired OTP. Please request a new one.' 
+      });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+    user.password = hashedPassword;
+    await user.save();
+
+    await OTP.deleteOne({ _id: otpRecord._id });
+
+    console.log(`✅ Password reset successful for: ${email}`);
+
+    res.json({ 
+      success: true,
+      message: 'Password reset successfully. You can now login with your new password.'
+    });
+
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ error: 'Failed to reset password. Please try again.' });
+  }
+});
+
+// ===== CATEGORY ROUTES =====
 app.get('/api/categories', async (req, res) => {
   try {
     const categories = await Category.find();
     res.json(categories);
   } catch (err) {
     console.error('Categories fetch error:', err);
-    // Return empty array instead of error for better frontend experience
     res.json([]);
   }
 });
 
-// POST new category (updated to handle image upload)
 app.post('/api/categories', upload.single('image'), async (req, res) => {
   try {
-    console.log('Received category data:', req.body);
-    console.log('Received file:', req.file);
-    
     const { name, description } = req.body;
     
-    // Validation
     if (!name) {
       return res.status(400).json({ error: 'Category name is required' });
     }
 
-    // Check if category already exists
     const existingCategory = await Category.findOne({ name });
     if (existingCategory) {
       return res.status(400).json({ error: 'Category already exists' });
     }
 
-    // Handle image upload - Fix: Use absolute path
     const image = req.file ? `/uploads/${req.file.filename}` : null;
 
-    // Create new category
     const newCategory = new Category({
       name,
       description,
@@ -257,16 +604,10 @@ app.post('/api/categories', upload.single('image'), async (req, res) => {
 
   } catch (error) {
     console.error('Category creation error:', error);
-    if (error instanceof multer.MulterError) {
-      if (error.code === 'LIMIT_FILE_SIZE') {
-        return res.status(400).json({ error: 'File size too large. Maximum 5MB allowed.' });
-      }
-    }
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// DELETE category
 app.delete('/api/categories/:id', async (req, res) => {
   try {
     const category = await Category.findById(req.params.id);
@@ -274,7 +615,6 @@ app.delete('/api/categories/:id', async (req, res) => {
       return res.status(404).json({ message: 'Category not found' });
     }
 
-    // Delete associated image file if exists
     if (category.image) {
       const imagePath = path.join(__dirname, category.image);
       if (fs.existsSync(imagePath)) {
@@ -283,8 +623,6 @@ app.delete('/api/categories/:id', async (req, res) => {
     }
 
     await Category.findByIdAndDelete(req.params.id);
-    
-    // Also delete all products in this category
     await Product.deleteMany({ categoryId: req.params.id });
     
     res.json({ message: 'Category deleted successfully' });
@@ -295,20 +633,16 @@ app.delete('/api/categories/:id', async (req, res) => {
 });
 
 // ===== PRODUCT ROUTES =====
-
-// GET featured products (updated to only return featured products)
 app.get('/api/products/featured', async (req, res) => {
   try {
     const products = await Product.find({ featured: true }).populate('categoryId', 'name');
     res.json(products);
   } catch (err) {
     console.error('Featured products fetch error:', err);
-    // Return empty array instead of error
     res.json([]);
   }
 });
 
-// GET all products
 app.get('/api/products', async (req, res) => {
   try {
     const products = await Product.find().populate('categoryId', 'name');
@@ -319,29 +653,21 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
-// POST new product (updated to handle featured field)
 app.post('/api/products', upload.single('image'), async (req, res) => {
   try {
-    console.log('Received product data:', req.body);
-    console.log('Received file:', req.file);
-    
     const { name, supplier, priceRange, moq, categoryId, verified, featured } = req.body;
     
-    // Validation
     if (!name || !categoryId) {
       return res.status(400).json({ error: 'Product name and category are required' });
     }
 
-    // Check if category exists
     const category = await Category.findById(categoryId);
     if (!category) {
       return res.status(400).json({ error: 'Category not found' });
     }
 
-    // Handle image upload - Fix: Use absolute path
     const image = req.file ? `/uploads/${req.file.filename}` : null;
 
-    // Create new product
     const newProduct = new Product({
       name,
       supplier,
@@ -350,12 +676,10 @@ app.post('/api/products', upload.single('image'), async (req, res) => {
       categoryId,
       image,
       verified: verified === 'true',
-      featured: featured === 'true' // Handle featured field
+      featured: featured === 'true'
     });
 
     await newProduct.save();
-
-    // Populate category name in response
     await newProduct.populate('categoryId', 'name');
 
     res.status(201).json({ 
@@ -365,16 +689,10 @@ app.post('/api/products', upload.single('image'), async (req, res) => {
 
   } catch (error) {
     console.error('Product creation error:', error);
-    if (error instanceof multer.MulterError) {
-      if (error.code === 'LIMIT_FILE_SIZE') {
-        return res.status(400).json({ error: 'File size too large. Maximum 5MB allowed.' });
-      }
-    }
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// DELETE product
 app.delete('/api/products/:id', async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
@@ -382,7 +700,6 @@ app.delete('/api/products/:id', async (req, res) => {
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    // Delete associated image file if exists
     if (product.image) {
       const imagePath = path.join(__dirname, product.image);
       if (fs.existsSync(imagePath)) {
@@ -399,8 +716,6 @@ app.delete('/api/products/:id', async (req, res) => {
 });
 
 // ===== TESTIMONIAL ROUTES =====
-
-// GET all testimonials
 app.get('/api/testimonials', async (req, res) => {
   try {
     const testimonials = await Testimonial.find();
@@ -411,19 +726,14 @@ app.get('/api/testimonials', async (req, res) => {
   }
 });
 
-// POST new testimonial - FIX: Use upload.none() to handle form data
 app.post('/api/testimonials', upload.none(), async (req, res) => {
   try {
-    console.log('Received testimonial data:', req.body);
-    
     const { text, author } = req.body;
     
-    // Validation
     if (!text || !author) {
       return res.status(400).json({ error: 'Testimonial text and author are required' });
     }
 
-    // Create new testimonial
     const newTestimonial = new Testimonial({
       text,
       author
@@ -442,7 +752,6 @@ app.post('/api/testimonials', upload.none(), async (req, res) => {
   }
 });
 
-// DELETE testimonial
 app.delete('/api/testimonials/:id', async (req, res) => {
   try {
     const testimonial = await Testimonial.findByIdAndDelete(req.params.id);
@@ -457,8 +766,6 @@ app.delete('/api/testimonials/:id', async (req, res) => {
 });
 
 // ===== USER PROFILE ROUTES =====
-
-// GET user profile
 app.get('/api/user/:id', async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select('-password');
@@ -473,19 +780,17 @@ app.get('/api/user/:id', async (req, res) => {
 });
 
 // ===== HEALTH CHECK =====
-
 app.get('/api/health', (req, res) => {
   res.json({ 
     status: 'OK', 
     message: 'Server is running',
     timestamp: new Date().toISOString(),
-    mongodb: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected'
+    mongodb: mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected',
+    email: process.env.BREVO_USER ? 'Brevo SMTP - Real emails' : 'Ethereal - Testing'
   });
 });
 
 // ===== FALLBACK DATA ENDPOINTS =====
-
-// Get fallback categories
 app.get('/api/fallback/categories', (req, res) => {
   const fallbackCategories = [
     { 
@@ -516,7 +821,6 @@ app.get('/api/fallback/categories', (req, res) => {
   res.json(fallbackCategories);
 });
 
-// Get fallback featured products
 app.get('/api/fallback/products/featured', (req, res) => {
   const fallbackProducts = [
     { _id: '1', name: "Eco-Friendly Jute Bags", supplier: "Dhaka Jute Mills Ltd.", priceRange: "$2.50 - $4.00", moq: 500, image: "/images/jute-bags.jpg", verified: true, featured: true },
@@ -527,7 +831,6 @@ app.get('/api/fallback/products/featured', (req, res) => {
   res.json(fallbackProducts);
 });
 
-// Get fallback testimonials
 app.get('/api/fallback/testimonials', (req, res) => {
   const fallbackTestimonials = [
     { _id: '1', text: "SourceBd has transformed how we source products from Bangladesh. The platform is easy to use, and we've found reliable suppliers for our textile business.", author: "Ahmed Rahman, Fashion Importer, UK" },
@@ -537,8 +840,6 @@ app.get('/api/fallback/testimonials', (req, res) => {
 });
 
 // ===== ERROR HANDLING =====
-
-// Custom 404 handler for API routes
 app.use((req, res, next) => {
   if (req.path.startsWith('/api/')) {
     return res.status(404).json({ error: 'API endpoint not found' });
@@ -546,7 +847,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Global error handler
 app.use((error, req, res, next) => {
   console.error('Global error handler:', error);
   
@@ -559,7 +859,6 @@ app.use((error, req, res, next) => {
   res.status(500).json({ error: 'Something went wrong!' });
 });
 
-// Handle all other routes
 app.use((req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
@@ -569,4 +868,14 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📍 Health check: http://localhost:${PORT}/api/health`);
   console.log(`📍 API Base: http://localhost:${PORT}/api`);
+  console.log(`🔐 JWT Secret: Using your existing configuration`);
+  
+  if (process.env.BREVO_USER) {
+    console.log(`📧 EMAIL SYSTEM: Using Brevo SMTP (Real emails to any address)`);
+    console.log(`   • Free: 300 emails/day`);
+    console.log(`   • No domain verification needed`);
+  } else {
+    console.log(`📧 EMAIL SYSTEM: Using Ethereal Email (Testing only)`);
+    console.log(`   • Set up Brevo for real emails to any address`);
+  }
 });

@@ -13,35 +13,47 @@ const About = () => {
     successfulTransactions: 25000,
   };
 
+  const values = [
+    {
+      title: "Trust & Transparency",
+      description: "We verify all suppliers and maintain complete transparency in all transactions to build lasting trust.",
+      icon: "fas fa-handshake"
+    },
+    {
+      title: "Partnership",
+      description: "We believe in building relationships, not just facilitating transactions.",
+      icon: "fas fa-users"
+    },
+    {
+      title: "Quality",
+      description: "We are committed to connecting buyers with suppliers who meet international quality standards.",
+      icon: "fas fa-award"
+    }
+  ];
+
+  const team = [
+    {
+      name: "Rehan Ahmed",
+      role: "Founder & CEO",
+      description: "20+ years in international trade and supply chain management"
+    },
+    {
+      name: "Abdullah Al Jobayer",
+      role: "Chief Technology Officer",
+      description: "Former tech lead at major e-commerce platform"
+    },
+    {
+      name: "Rifah Tasnim Jui",
+      role: "Chief Operations Officer",
+      description: "Operations expert with 15 years in manufacturing"
+    }
+  ];
+
   return (
-    <main>
-      <section className="breadcrumb-section">
-        <div className="container">
-          <nav aria-label="breadcrumb">
-            <ol className="breadcrumb">
-              <li className="breadcrumb-item">
-                <Link to="/">Home</Link>
-              </li>
-              <li className="breadcrumb-item active">
-                <span>About Us</span>
-              </li>
-            </ol>
-          </nav>
-        </div>
-      </section>
+    <div className="about-page">
 
-      <section className="page-header section">
-        <div className="container">
-          <div className="page-header-content">
-            <h1>Connecting Global Buyers with Bangladeshi Suppliers</h1>
-            <p>
-              SourceBd is Bangladesh's premier B2B marketplace, dedicated to showcasing the best of Bangladeshi manufacturing to the world.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <section className="about-hero section">
+      {/* Hero Section */}
+      <section className="about-hero">
         <div className="container">
           <div className="about-hero-content">
             <h1>Connecting Global Buyers with Bangladeshi Suppliers</h1>
@@ -55,25 +67,28 @@ const About = () => {
         </div>
       </section>
 
-      <section className="about-story-section section">
+      {/* Our Story Section */}
+      <section className="about-story section">
         <div className="container">
           <div className="section-title">
             <h2>Our Story</h2>
-            <div className="story-content">
-              <p>
-                Founded in 2020, SourceBd emerged from a simple vision: to create a seamless bridge between international buyers and the diverse manufacturing capabilities of Bangladesh. Our founders, with decades of experience in international trade and technology, recognized the need for a dedicated platform that could showcase Bangladesh's manufacturing prowess to the world.
-              </p>
-              <p>
-                Today, we connect thousands of verified suppliers from across Bangladesh with buyers from over 50 countries worldwide. From textiles and garments to agriculture, electronics, and specialized machinery, SourceBd provides a trusted platform for businesses to discover new opportunities and forge lasting partnerships.
-              </p>
-              <p>
-                Our commitment to quality, verification, and exceptional service has made us the preferred B2B marketplace for businesses looking to source from Bangladesh.
-              </p>
-            </div>
+            <p>From vision to reality - our journey in transforming B2B trade</p>
+          </div>
+          <div className="story-content">
+            <p>
+              Founded in 2020, SourceBd emerged from a simple vision: to create a seamless bridge between international buyers and the diverse manufacturing capabilities of Bangladesh. Our founders, with decades of experience in international trade and technology, recognized the need for a dedicated platform that could showcase Bangladesh's manufacturing prowess to the world.
+            </p>
+            <p>
+              Today, we connect thousands of verified suppliers from across Bangladesh with buyers from over 50 countries worldwide. From textiles and garments to agriculture, electronics, and specialized machinery, SourceBd provides a trusted platform for businesses to discover new opportunities and forge lasting partnerships.
+            </p>
+            <p>
+              Our commitment to quality, verification, and exceptional service has made us the preferred B2B marketplace for businesses looking to source from Bangladesh.
+            </p>
           </div>
         </div>
       </section>
 
+      {/* Mission & Vision Section */}
       <section className="mission-vision-section section">
         <div className="container">
           <div className="section-title">
@@ -103,6 +118,7 @@ const About = () => {
         </div>
       </section>
 
+      {/* Values Section */}
       <section className="values-section section">
         <div className="container">
           <div className="section-title">
@@ -110,42 +126,25 @@ const About = () => {
             <p>The core principles that guide everything we do</p>
           </div>
           <div className="values-grid">
-            <div className="value-card">
-              <div className="value-icon">
-                <i className="fas fa-handshake"></i>
+            {values.map((value, index) => (
+              <div key={index} className="value-card">
+                <div className="value-icon">
+                  <i className={value.icon}></i>
+                </div>
+                <h3>{value.title}</h3>
+                <p>{value.description}</p>
               </div>
-              <h3>Trust & Transparency</h3>
-              <p>We verify all suppliers and maintain complete transparency in all transactions to build lasting trust.</p>
-            </div>
-            <div className="value-card">
-              <div className="value-icon">
-                <i className="fas fa-users"></i>
-              </div>
-              <h3>Partnership</h3>
-              <p>We believe in building relationships, not just facilitating transactions.</p>
-            </div>
-            <div className="value-card">
-              <div className="value-icon">
-                <i className="fas fa-lightbulb"></i>
-              </div>
-              <h3>Innovation</h3>
-              <p>We continuously evolve our platform to meet the changing needs of global trade.</p>
-            </div>
-            <div className="value-card">
-              <div className="value-icon">
-                <i className="fas fa-award"></i>
-              </div>
-              <h3>Quality</h3>
-              <p>We are committed to connecting buyers with suppliers who meet international quality standards.</p>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
+      {/* Stats Section */}
       <section className="stats-section section">
         <div className="container">
           <div className="section-title">
             <h2>Our Impact</h2>
+            <p>Building bridges between Bangladesh and the world</p>
           </div>
           <div className="stats-grid">
             <div className="stat-card">
@@ -168,6 +167,7 @@ const About = () => {
         </div>
       </section>
 
+      {/* Team Section */}
       <section className="team-section section">
         <div className="container">
           <div className="section-title">
@@ -175,38 +175,21 @@ const About = () => {
             <p>Meet the passionate individuals driving SourceBd forward</p>
           </div>
           <div className="team-grid">
-            <div className="team-card">
-              <div className="team-image">
-                <img src="/placeholder-team.jpg" alt="Abdul Rahman" />
+            {team.map((member, index) => (
+              <div key={index} className="team-card">
+                <div className="team-image">
+                  <i className="fas fa-user-circle"></i>
+                </div>
+                <h3>{member.name}</h3>
+                <p className="team-role">{member.role}</p>
+                <p className="team-description">{member.description}</p>
               </div>
-              <h3>Abdul Rahman</h3>
-              <p>Founder & CEO</p>
-            </div>
-            <div className="team-card">
-              <div className="team-image">
-                <img src="/placeholder-team.jpg" alt="Fatima Ahmed" />
-              </div>
-              <h3>Fatima Ahmed</h3>
-              <p>Chief Technology Officer</p>
-            </div>
-            <div className="team-card">
-              <div className="team-image">
-                <img src="/placeholder-team.jpg" alt="Mohammad Hassan" />
-              </div>
-              <h3>Mohammad Hassan</h3>
-              <p>Chief Operations Officer</p>
-            </div>
-            <div className="team-card">
-              <div className="team-image">
-                <img src="/placeholder-team.jpg" alt="Nusrat Jahan" />
-              </div>
-              <h3>Nusrat Jahan</h3>
-              <p>Chief Marketing Officer</p>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
+      {/* CTA Section */}
       <section className="cta-section">
         <div className="container">
           <div className="cta-content">
@@ -214,14 +197,10 @@ const About = () => {
             <p>
               Whether you're a buyer looking for quality products or a supplier wanting to reach global markets, SourceBd provides the platform and tools you need to succeed in today's competitive marketplace.
             </p>
-            <div className="cta-buttons">
-              <Link to="/register" className="btn btn-primary btn-large">Register as a Buyer</Link>
-              <Link to="/register" className="btn btn-outline btn-large">Become a Supplier</Link>
-            </div>
           </div>
         </div>
       </section>
-    </main>
+    </div>
   );
 };
 

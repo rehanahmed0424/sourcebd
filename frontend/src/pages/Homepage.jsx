@@ -181,15 +181,7 @@ const HomePage = () => {
           <div className="hero-content">
             <h1>Bangladesh's Premier B2B Marketplace</h1>
             <p>Connect with verified suppliers, source quality products, and grow your business with SourceBd</p>
-            <div className="hero-buttons">
-              <Link to="/products" className="btn btn-primary">Start Sourcing</Link>
-              {!isAuthenticated && (
-                <Link to="/register" className="btn btn-outline">Join Free Today</Link>
-              )}
-              {isAuthenticated && (
-                <Link to="/dashboard" className="btn btn-outline">My Dashboard</Link>
-              )}
-            </div>
+            {/* Removed the hero-buttons section completely */}
           </div>
         </div>
       </section>
@@ -327,17 +319,6 @@ const HomePage = () => {
           <div className="cta-content">
             <h2>Ready to Source from Bangladesh?</h2>
             <p>Join thousands of businesses that have discovered quality products and reliable suppliers through SourceBd</p>
-            {!isAuthenticated ? (
-              <div className="cta-buttons">
-                <Link to="/register" className="btn btn-large">Create Free Account</Link>
-                <Link to="/products" className="btn btn-outline btn-large">Browse Products</Link>
-              </div>
-            ) : (
-              <div className="cta-buttons">
-                <Link to="/products" className="btn btn-large">Browse Products</Link>
-                <Link to="/suppliers" className="btn btn-outline btn-large">Find Suppliers</Link>
-              </div>
-            )}
           </div>
         </div>
       </section>

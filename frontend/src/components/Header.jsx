@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const Header = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [cartCount] = useState(3);
   const { user, logout } = useAuth();
@@ -27,7 +26,7 @@ const Header = () => {
   };
 
   return (
-    <header>
+    <header style={{ backgroundColor: '#2d4d31' }}>
       <div className="container">
         <div className="header-top">
           <div className="logo">
@@ -49,26 +48,55 @@ const Header = () => {
                     setIsProfileOpen(!isProfileOpen);
                   }}
                 >
-                  <i className="fas fa-user-circle"></i>
-                  <span>{user.firstName || user.name}</span>
+                  <div className="profile-avatar">
+                    <i className="fas fa-user-circle"></i>
+                  </div>
+                  <span className="profile-name">{user.firstName || user.name}</span>
                   <i className={`fas fa-chevron-${isProfileOpen ? 'up' : 'down'}`}></i>
                 </button>
                 
                 {isProfileOpen && (
-                  <div className="dropdown-menu">
-                    <Link to="/profile" onClick={() => setIsProfileOpen(false)}>
-                      <i className="fas fa-user"></i> My Profile
-                    </Link>
-                    <Link to="/orders" onClick={() => setIsProfileOpen(false)}>
-                      <i className="fas fa-shopping-bag"></i> My Orders
-                    </Link>
-                    <Link to="/quotes" onClick={() => setIsProfileOpen(false)}>
-                      <i className="fas fa-file-invoice"></i> My Quotes
-                    </Link>
-                    <div className="dropdown-divider"></div>
-                    <button onClick={handleLogout} className="logout-btn">
-                      <i className="fas fa-sign-out-alt"></i> Logout
-                    </button>
+                  <div className="dropdown-card">
+                    <div className="dropdown-header">
+                      <div className="user-info">
+                        <div className="user-avatar">
+                          <i className="fas fa-user-circle"></i>
+                        </div>
+                        <div className="user-details">
+                          <div className="user-name">{user.firstName || user.name}</div>
+                          <div className="user-email">{user.email}</div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="dropdown-body">
+                      <Link to="/profile" onClick={() => setIsProfileOpen(false)} className="dropdown-item">
+                        <i className="fas fa-user"></i>
+                        <span>My Profile</span>
+                      </Link>
+                      
+                      <Link to="/orders" onClick={() => setIsProfileOpen(false)} className="dropdown-item">
+                        <i className="fas fa-shopping-bag"></i>
+                        <span>My Orders</span>
+                      </Link>
+                      
+                      <Link to="/quotes" onClick={() => setIsProfileOpen(false)} className="dropdown-item">
+                        <i className="fas fa-file-invoice"></i>
+                        <span>My Quotes</span>
+                      </Link>
+                      
+                      <Link to="/settings" onClick={() => setIsProfileOpen(false)} className="dropdown-item">
+                        <i className="fas fa-cog"></i>
+                        <span>Settings</span>
+                      </Link>
+                    </div>
+                    
+                    <div className="dropdown-footer">
+                      <button onClick={handleLogout} className="logout-btn">
+                        <i className="fas fa-sign-out-alt"></i>
+                        <span>Sign Out</span>
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -82,31 +110,24 @@ const Header = () => {
             
             <Link to="/cart" className="cart-link">
               <i className="fas fa-shopping-cart"></i> 
-              Cart{cartCount > 0 && <span className="cart-count">({cartCount})</span>}
+              {cartCount > 0 && <span className="cart-count">{cartCount}</span>}
+            </Link>
+
+            {/* New About Us and Contact buttons */}
+            <Link to="/about" className="header-link">
+              <i className="fas fa-info-circle"></i> About Us
             </Link>
             
-            <Link to="/help" className="help-link">
+            <Link to="/contact" className="header-link">
+              <i className="fas fa-envelope"></i> Contact
+            </Link>
+            
+            <Link to="/help" className="header-link">
               <i className="fas fa-question-circle"></i> Help
             </Link>
           </div>
         </div>
       </div>
-      
-      <nav>
-        <div className="container">
-          <ul className="nav-menu">
-            <li><Link to="/category/all">All Categories</Link></li>
-            <li><Link to="/category/textile">Textile & Leather</Link></li>
-            <li><Link to="/category/agriculture">Agriculture</Link></li>
-            <li><Link to="/category/electronics">Electronics</Link></li>
-            <li><Link to="/category/food">Food & Beverage</Link></li>
-            <li><Link to="/category/machinery">Machinery</Link></li>
-            <li><Link to="/category/chemicals">Chemicals</Link></li>
-            <li><Link to="/category/construction">Construction</Link></li>
-            <li><Link to="/about">About Us</Link></li>
-          </ul>
-        </div>
-      </nav>
     </header>
   );
 };
