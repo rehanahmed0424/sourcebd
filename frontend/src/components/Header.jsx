@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 const Header = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [cartCount] = useState(3);
+  const [searchQuery, setSearchQuery] = useState('');
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -25,6 +26,13 @@ const Header = () => {
     setIsProfileOpen(false);
   };
 
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
+
   return (
     <header style={{ backgroundColor: '#2d4d31' }}>
       <div className="container">
@@ -34,8 +42,17 @@ const Header = () => {
           </div>
           
           <div className="search-bar">
-            <input type="text" placeholder="Search for products, suppliers, or categories..." />
-            <button><i className="fas fa-search"></i></button>
+            <form onSubmit={handleSearch}>
+              <input 
+                type="text" 
+                placeholder="Search for products, suppliers, or categories..." 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <button type="submit">
+                <i className="fas fa-search"></i>
+              </button>
+            </form>
           </div>
           
           <div className="header-actions">
@@ -70,42 +87,41 @@ const Header = () => {
                     </div>
                     
                     <div className="dropdown-body">
-                      <Link to="/profile" onClick={() => setIsProfileOpen(false)} className="dropdown-item">
+                      <Link to="/profile" className="dropdown-item" onClick={() => setIsProfileOpen(false)}>
                         <i className="fas fa-user"></i>
                         <span>My Profile</span>
                       </Link>
-                      
-                      <Link to="/orders" onClick={() => setIsProfileOpen(false)} className="dropdown-item">
+                      <Link to="/orders" className="dropdown-item" onClick={() => setIsProfileOpen(false)}>
                         <i className="fas fa-shopping-bag"></i>
                         <span>My Orders</span>
                       </Link>
-                      
-                      <Link to="/quotes" onClick={() => setIsProfileOpen(false)} className="dropdown-item">
-                        <i className="fas fa-file-invoice"></i>
-                        <span>My Quotes</span>
+                      <Link to="/wishlist" className="dropdown-item" onClick={() => setIsProfileOpen(false)}>
+                        <i className="fas fa-heart"></i>
+                        <span>Wishlist</span>
                       </Link>
-                      
-                      <Link to="/settings" onClick={() => setIsProfileOpen(false)} className="dropdown-item">
+                      <Link to="/settings" className="dropdown-item" onClick={() => setIsProfileOpen(false)}>
                         <i className="fas fa-cog"></i>
                         <span>Settings</span>
+                      </Link>
+                      <Link to="/messages" className="dropdown-item" onClick={() => setIsProfileOpen(false)}>
+                        <i className="fas fa-envelope"></i>
+                        <span>Messages</span>
                       </Link>
                     </div>
                     
                     <div className="dropdown-footer">
-                      <button onClick={handleLogout} className="logout-btn">
+                      <button className="logout-btn" onClick={handleLogout}>
                         <i className="fas fa-sign-out-alt"></i>
-                        <span>Sign Out</span>
+                        <span>Logout</span>
                       </button>
                     </div>
                   </div>
                 )}
               </div>
             ) : (
-              <>
-                <Link to="/login" className="sign-in-link">
-                  <i className="fas fa-user"></i> Sign In
-                </Link>
-              </>
+              <Link to="/login" className="sign-in-link">
+                <i className="fas fa-user"></i> Sign In
+              </Link>
             )}
             
             <Link to="/cart" className="cart-link">
@@ -113,7 +129,6 @@ const Header = () => {
               {cartCount > 0 && <span className="cart-count">{cartCount}</span>}
             </Link>
 
-            {/* New About Us and Contact buttons */}
             <Link to="/about" className="header-link">
               <i className="fas fa-info-circle"></i> About Us
             </Link>

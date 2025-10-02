@@ -779,6 +779,129 @@ app.get('/api/user/:id', async (req, res) => {
   }
 });
 
+// ===== ENHANCED SEARCH ROUTES =====
+
+// Enhanced search endpoint with category search and filtering
+app.get('/api/search', async (req, res) => {
+  try {
+    const { q: query, category, minPrice, maxPrice, sortBy, verified, featured } = req.query;
+
+    if (!query || query.trim().length === 0) {
+      return res.status(400).json({ error: 'Search query is required' });
+    }
+
+    const searchTerm = query.trim();
+    console.log('🔍 Enhanced search for:', searchTerm);
+
+    // Build search query
+    let searchQuery = {
+      $or: [
+        { name: { $regex: searchTerm, $options: 'i' } },
+        { supplier: { $regex: searchTerm, $options: 'i' } },
+        { priceRange: { $regex: searchTerm, $options: 'i' } }
+      ]
+    };
+
+    // Add category search - search in category names too
+    const matchingCategories = await Category.find({
+      name: { $regex: searchTerm, $options: 'i' }
+    });
+
+    if (matchingCategories.length > 0) {
+      searchQuery.$or.push({
+        categoryId: { $in: matchingCategories.map(cat => cat._id) }
+      });
+    }
+
+    // Apply filters
+    if (category && category !== 'all') {
+      const categoryObj = await Category.findOne({ name: new RegExp(category, 'i') });
+      if (categoryObj) {
+        searchQuery.categoryId = categoryObj._id;
+      }
+    }
+
+    if (verified === 'true') {
+      searchQuery.verified = true;
+    }
+
+    if (featured === 'true') {
+      searchQuery.featured = true;
+    }
+
+    // Price range filtering (basic implementation)
+    if (minPrice || maxPrice) {
+      // This is a simplified implementation - you might want to parse actual numbers
+      searchQuery.priceRange = {};
+      if (minPrice) {
+        searchQuery.priceRange.$gte = minPrice;
+      }
+      if (maxPrice) {
+        searchQuery.priceRange.$lte = maxPrice;
+      }
+    }
+
+    // Build sort options
+    let sortOptions = {};
+    switch (sortBy) {
+      case 'price-low':
+        sortOptions = { 'priceRange': 1 };
+        break;
+      case 'price-high':
+        sortOptions = { 'priceRange': -1 };
+        break;
+      case 'name':
+        sortOptions = { 'name': 1 };
+        break;
+      case 'featured':
+        sortOptions = { 'featured': -1, 'verified': -1 };
+        break;
+      default:
+        sortOptions = { 'featured': -1, 'verified': -1, 'name': 1 };
+    }
+
+    // Execute search
+    const products = await Product.find(searchQuery)
+      .populate('categoryId', 'name')
+      .sort(sortOptions);
+
+    // Get all categories for filters
+    const allCategories = await Category.find();
+
+    console.log('📦 Found products:', products.length);
+
+    res.json({
+      query: searchTerm,
+      products: products,
+      productCount: products.length,
+      totalResults: products.length,
+      categories: allCategories,
+      filters: {
+        category: category || 'all',
+        minPrice: minPrice || '',
+        maxPrice: maxPrice || '',
+        sortBy: sortBy || 'relevance',
+        verified: verified === 'true',
+        featured: featured === 'true'
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Enhanced search error:', error);
+    res.status(500).json({ error: 'Failed to perform search: ' + error.message });
+  }
+});
+
+// Get all categories for search filters
+app.get('/api/categories/search', async (req, res) => {
+  try {
+    const categories = await Category.find().select('name');
+    res.json(categories);
+  } catch (error) {
+    console.error('Categories fetch error:', error);
+    res.status(500).json({ error: 'Failed to fetch categories' });
+  }
+});
 // ===== HEALTH CHECK =====
 app.get('/api/health', (req, res) => {
   res.json({ 

@@ -12,6 +12,7 @@ import Contact from './pages/Contact';
 import Help from './pages/Help';
 import Cart from './pages/Cart';
 import Category from './pages/Category';
+import SearchResults from './pages/SearchResults';
 
 const App = () => {
   return (
@@ -27,6 +28,7 @@ const App = () => {
         <Route path="/help" element={<MainLayout><Help /></MainLayout>} />
         <Route path="/cart" element={<MainLayout><Cart /></MainLayout>} />
         <Route path="/category/:categoryName" element={<MainLayout><Category /></MainLayout>} />
+        <Route path="/search" element={<MainLayout><SearchResults /></MainLayout>} />
         <Route path="*" element={<MainLayout><div>404 - Page Not Found</div></MainLayout>} />
       </Routes>
     </AuthProvider>
