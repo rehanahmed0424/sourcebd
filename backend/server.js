@@ -110,6 +110,7 @@ const categorySchema = new mongoose.Schema({
 const Category = mongoose.model('Category', categorySchema);
 
 // Product Model
+// Updated Product Schema
 const productSchema = new mongoose.Schema({
   name: { type: String, required: true },
   supplier: String,
@@ -119,6 +120,20 @@ const productSchema = new mongoose.Schema({
   image: String,
   verified: { type: Boolean, default: false },
   featured: { type: Boolean, default: false },
+  description: String,
+  specifications: {
+    material: String,
+    size: String,
+    weightCapacity: String,
+    leadTime: String,
+    customization: String,
+    handleLength: String,
+    printingMethod: String,
+    colorOptions: String,
+    packaging: String
+  },
+  reviewCount: { type: Number, default: 0 },
+  orderCount: { type: Number, default: 0 }
 });
 const Product = mongoose.model('Product', productSchema);
 
@@ -653,9 +668,27 @@ app.get('/api/products', async (req, res) => {
   }
 });
 
+// Get single product by ID
+app.get('/api/products/:id', async (req, res) => {
+  try {
+    const product = await Product.findById(req.params.id).populate('categoryId', 'name');
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    res.json(product);
+  } catch (err) {
+    console.error('Product fetch error:', err);
+    res.status(500).json({ error: 'Failed to fetch product' });
+  }
+});
+
+// In your server.js, update the product POST route:
 app.post('/api/products', upload.single('image'), async (req, res) => {
   try {
-    const { name, supplier, priceRange, moq, categoryId, verified, featured } = req.body;
+    const { 
+      name, supplier, priceRange, moq, categoryId, 
+      verified, featured, description, reviewCount, orderCount
+    } = req.body;
     
     if (!name || !categoryId) {
       return res.status(400).json({ error: 'Product name and category are required' });
@@ -666,7 +699,20 @@ app.post('/api/products', upload.single('image'), async (req, res) => {
       return res.status(400).json({ error: 'Category not found' });
     }
 
-    const image = req.file ? `/uploads/${req.file.filename}` : null;
+    const image = req.file ? req.file.filename : null;
+
+    // Build specifications object from form data
+    const specifications = {};
+    const specFields = [
+      'material', 'size', 'weightCapacity', 'leadTime', 'customization',
+      'handleLength', 'printingMethod', 'colorOptions', 'packaging'
+    ];
+    
+    specFields.forEach(field => {
+      if (req.body[`specifications[${field}]`]) {
+        specifications[field] = req.body[`specifications[${field}]`];
+      }
+    });
 
     const newProduct = new Product({
       name,
@@ -676,11 +722,17 @@ app.post('/api/products', upload.single('image'), async (req, res) => {
       categoryId,
       image,
       verified: verified === 'true',
-      featured: featured === 'true'
+      featured: featured === 'true',
+      description,
+      reviewCount: parseInt(reviewCount) || 0,
+      orderCount: parseInt(orderCount) || 0,
+      specifications
     });
 
     await newProduct.save();
     await newProduct.populate('categoryId', 'name');
+
+    console.log('✅ Product created with specifications:', specifications);
 
     res.status(201).json({ 
       message: 'Product added successfully',

@@ -13,10 +13,24 @@ const AdminPanel = () => {
     categoryId: '',
     image: null,
     verified: false,
-    featured: false, // New field for featured products
+    featured: false,
     text: '',
     author: '',
-    imagePreview: null
+    imagePreview: null,
+    // New fields for enhanced product details
+    specifications: {
+      material: '',
+      size: '',
+      weightCapacity: '',
+      leadTime: '',
+      customization: '',
+      handleLength: '',
+      printingMethod: '',
+      colorOptions: '',
+      packaging: ''
+    },
+    reviewCount: 0,
+    orderCount: 0
   });
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
@@ -25,6 +39,14 @@ const AdminPanel = () => {
   const [success, setSuccess] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  // Image URL helper function
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return '/images/product-placeholder.jpg';
+    if (imagePath.startsWith('http') || imagePath.startsWith('data:')) return imagePath;
+    if (!imagePath.startsWith('/')) return `http://localhost:5000/uploads/${imagePath}`;
+    return `http://localhost:5000${imagePath}`;
+  };
 
   // Fetch data based on current tab
   useEffect(() => {
@@ -72,7 +94,17 @@ const AdminPanel = () => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    if (type === 'checkbox') {
+    
+    if (name.startsWith('specifications.')) {
+      const specField = name.split('.')[1];
+      setNewData(prev => ({
+        ...prev,
+        specifications: {
+          ...prev.specifications,
+          [specField]: value
+        }
+      }));
+    } else if (type === 'checkbox') {
       setNewData((prev) => ({ ...prev, [name]: checked }));
     } else if (type === 'file') {
       const file = e.target.files[0];
@@ -124,12 +156,34 @@ const AdminPanel = () => {
       return;
     }
 
+    // Enhanced image validation
+    if ((adminType === 'categories' || adminType === 'products') && !newData.image) {
+      setError('Image is required');
+      setLoading(false);
+      return;
+    }
+
     const formData = new FormData();
     
-    // Add common fields
+    // Add common fields with better logging
+    console.log('Submitting form data:', {
+      name: newData.name,
+      image: newData.image ? newData.image.name : 'No image',
+      adminType: adminType,
+      specifications: newData.specifications
+    });
+
     Object.keys(newData).forEach((key) => {
       if (key === 'image' && newData[key]) {
         formData.append('image', newData[key]);
+        console.log('Added image to formData:', newData[key].name);
+      } else if (key === 'specifications') {
+        // Handle specifications object
+        Object.keys(newData.specifications).forEach(specKey => {
+          if (newData.specifications[specKey]) {
+            formData.append(`specifications[${specKey}]`, newData.specifications[specKey]);
+          }
+        });
       } else if (key !== 'imagePreview' && newData[key] !== null && newData[key] !== '') {
         formData.append(key, newData[key]);
       }
@@ -137,6 +191,8 @@ const AdminPanel = () => {
 
     try {
       const endpoint = `/api/${adminType}`;
+      console.log('Making request to:', `http://localhost:5000${endpoint}`);
+      
       const response = await fetch(`http://localhost:5000${endpoint}`, {
         method: 'POST',
         body: formData,
@@ -144,16 +200,19 @@ const AdminPanel = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('Server error response:', errorData);
         throw new Error(errorData.message || `Failed to add ${adminType}`);
       }
       
       const result = await response.json();
+      console.log('Success response:', result);
       setSuccess(`${adminType.slice(0, -1)} added successfully!`);
       
       // Refresh the data list
       const refreshResponse = await fetch(`http://localhost:5000/api/${adminType}`);
       if (refreshResponse.ok) {
         const refreshData = await refreshResponse.json();
+        console.log('Refreshed data:', refreshData);
         switch (adminType) {
           case 'categories':
             setCategories(refreshData);
@@ -172,6 +231,7 @@ const AdminPanel = () => {
       resetForm();
       
     } catch (err) {
+      console.error('Error in handleAddData:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -226,7 +286,20 @@ const AdminPanel = () => {
       featured: false,
       text: '',
       author: '',
-      imagePreview: null
+      imagePreview: null,
+      specifications: {
+        material: '',
+        size: '',
+        weightCapacity: '',
+        leadTime: '',
+        customization: '',
+        handleLength: '',
+        printingMethod: '',
+        colorOptions: '',
+        packaging: ''
+      },
+      reviewCount: 0,
+      orderCount: 0
     });
   };
 
@@ -361,128 +434,292 @@ const AdminPanel = () => {
               
               {adminType === 'products' && (
                 <>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="name">Product Name *</label>
-                      <input
-                        type="text"
-                        id="name"
-                        name="name"
-                        value={newData.name}
-                        onChange={handleInputChange}
-                        placeholder="e.g., Eco-Friendly Jute Bags"
-                        required
-                      />
-                    </div>
-                    
-                    <div className="form-group">
-                      <label htmlFor="supplier">Supplier *</label>
-                      <input
-                        type="text"
-                        id="supplier"
-                        name="supplier"
-                        value={newData.supplier}
-                        onChange={handleInputChange}
-                        placeholder="e.g., Dhaka Jute Mills Ltd."
-                        required
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label htmlFor="priceRange">Price Range *</label>
-                      <input
-                        type="text"
-                        id="priceRange"
-                        name="priceRange"
-                        value={newData.priceRange}
-                        onChange={handleInputChange}
-                        placeholder="e.g., $2.50 - $4.00"
-                        required
-                      />
-                    </div>
-                    
-                    <div className="form-group">
-                      <label htmlFor="moq">Minimum Order Quantity (MOQ) *</label>
-                      <input
-                        type="number"
-                        id="moq"
-                        name="moq"
-                        value={newData.moq}
-                        onChange={handleInputChange}
-                        min="1"
-                        placeholder="e.g., 500"
-                        required
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="form-group">
-                    <label htmlFor="categoryId">Category *</label>
-                    <select
-                      id="categoryId"
-                      name="categoryId"
-                      value={newData.categoryId}
-                      onChange={handleInputChange}
-                      required
-                    >
-                      <option value="">Select a category</option>
-                      {categories.map((cat) => (
-                        <option key={cat._id} value={cat._id}>{cat.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                  
-                  <div className="form-group">
-                    <label htmlFor="image">Product Image *</label>
-                    <div className="file-upload">
-                      <input
-                        type="file"
-                        id="image"
-                        name="image"
-                        accept="image/*"
-                        onChange={handleInputChange}
-                        required
-                      />
-                      <label htmlFor="image" className="file-upload-label">
-                        <i className="fas fa-cloud-upload-alt"></i>
-                        Choose Product Image (JPEG, PNG, max 5MB)
-                      </label>
-                    </div>
-                    {newData.imagePreview && (
-                      <div className="image-preview">
-                        <img src={newData.imagePreview} alt="Preview" />
-                        <p>{newData.image?.name}</p>
+                  <div className="form-section">
+                    <h3>Basic Information</h3>
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label htmlFor="name">Product Name *</label>
+                        <input
+                          type="text"
+                          id="name"
+                          name="name"
+                          value={newData.name}
+                          onChange={handleInputChange}
+                          placeholder="e.g., Eco-Friendly Jute Bags"
+                          required
+                        />
                       </div>
-                    )}
-                  </div>
-                  
-                  <div className="form-row">
-                    <div className="form-group checkbox-group">
-                      <label className="checkbox-label">
+                      
+                      <div className="form-group">
+                        <label htmlFor="supplier">Supplier *</label>
                         <input
-                          type="checkbox"
-                          name="verified"
-                          checked={newData.verified}
+                          type="text"
+                          id="supplier"
+                          name="supplier"
+                          value={newData.supplier}
                           onChange={handleInputChange}
+                          placeholder="e.g., Dhaka Jute Mills Ltd."
+                          required
                         />
-                        <span className="checkmark"></span>
-                        Mark as Verified Supplier
-                      </label>
+                      </div>
                     </div>
                     
-                    <div className="form-group checkbox-group">
-                      <label className="checkbox-label">
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label htmlFor="priceRange">Price Range *</label>
                         <input
-                          type="checkbox"
-                          name="featured"
-                          checked={newData.featured}
+                          type="text"
+                          id="priceRange"
+                          name="priceRange"
+                          value={newData.priceRange}
                           onChange={handleInputChange}
+                          placeholder="e.g., $2.50 - $4.00"
+                          required
                         />
-                        <span className="checkmark"></span>
-                        Feature this product
-                      </label>
+                      </div>
+                      
+                      <div className="form-group">
+                        <label htmlFor="moq">Minimum Order Quantity (MOQ) *</label>
+                        <input
+                          type="number"
+                          id="moq"
+                          name="moq"
+                          value={newData.moq}
+                          onChange={handleInputChange}
+                          min="1"
+                          placeholder="e.g., 500"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label htmlFor="reviewCount">Review Count</label>
+                        <input
+                          type="number"
+                          id="reviewCount"
+                          name="reviewCount"
+                          value={newData.reviewCount}
+                          onChange={handleInputChange}
+                          min="0"
+                          placeholder="e.g., 28"
+                        />
+                      </div>
+                      
+                      <div className="form-group">
+                        <label htmlFor="orderCount">Order Count</label>
+                        <input
+                          type="number"
+                          id="orderCount"
+                          name="orderCount"
+                          value={newData.orderCount}
+                          onChange={handleInputChange}
+                          min="0"
+                          placeholder="e.g., 125"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="form-group">
+                      <label htmlFor="categoryId">Category *</label>
+                      <select
+                        id="categoryId"
+                        name="categoryId"
+                        value={newData.categoryId}
+                        onChange={handleInputChange}
+                        required
+                      >
+                        <option value="">Select a category</option>
+                        {categories.map((cat) => (
+                          <option key={cat._id} value={cat._id}>{cat.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    <div className="form-group">
+                      <label htmlFor="description">Product Description *</label>
+                      <textarea
+                        id="description"
+                        name="description"
+                        value={newData.description}
+                        onChange={handleInputChange}
+                        placeholder="Describe the product features, benefits, and key selling points..."
+                        required
+                        rows="4"
+                      />
+                    </div>
+                    
+                    <div className="form-group">
+                      <label htmlFor="image">Product Image *</label>
+                      <div className="file-upload">
+                        <input
+                          type="file"
+                          id="image"
+                          name="image"
+                          accept="image/*"
+                          onChange={handleInputChange}
+                          required
+                        />
+                        <label htmlFor="image" className="file-upload-label">
+                          <i className="fas fa-cloud-upload-alt"></i>
+                          Choose Product Image (JPEG, PNG, max 5MB)
+                        </label>
+                      </div>
+                      {newData.imagePreview && (
+                        <div className="image-preview">
+                          <img src={newData.imagePreview} alt="Preview" />
+                          <p>{newData.image?.name}</p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="form-row">
+                      <div className="form-group checkbox-group">
+                        <label className="checkbox-label">
+                          <input
+                            type="checkbox"
+                            name="verified"
+                            checked={newData.verified}
+                            onChange={handleInputChange}
+                          />
+                          <span className="checkmark"></span>
+                          Mark as Verified Supplier
+                        </label>
+                      </div>
+                      
+                      <div className="form-group checkbox-group">
+                        <label className="checkbox-label">
+                          <input
+                            type="checkbox"
+                            name="featured"
+                            checked={newData.featured}
+                            onChange={handleInputChange}
+                          />
+                          <span className="checkmark"></span>
+                          Feature this product
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Specifications Section */}
+                  <div className="form-section">
+                    <h3>Product Specifications</h3>
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label htmlFor="specifications.material">Material</label>
+                        <input
+                          type="text"
+                          id="specifications.material"
+                          name="specifications.material"
+                          value={newData.specifications.material}
+                          onChange={handleInputChange}
+                          placeholder="e.g., 100% Natural Jute"
+                        />
+                      </div>
+                      
+                      <div className="form-group">
+                        <label htmlFor="specifications.size">Size/Dimensions</label>
+                        <input
+                          type="text"
+                          id="specifications.size"
+                          name="specifications.size"
+                          value={newData.specifications.size}
+                          onChange={handleInputChange}
+                          placeholder="e.g., 14x16x5 inches"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label htmlFor="specifications.weightCapacity">Weight Capacity</label>
+                        <input
+                          type="text"
+                          id="specifications.weightCapacity"
+                          name="specifications.weightCapacity"
+                          value={newData.specifications.weightCapacity}
+                          onChange={handleInputChange}
+                          placeholder="e.g., 10 kg"
+                        />
+                      </div>
+                      
+                      <div className="form-group">
+                        <label htmlFor="specifications.leadTime">Lead Time</label>
+                        <input
+                          type="text"
+                          id="specifications.leadTime"
+                          name="specifications.leadTime"
+                          value={newData.specifications.leadTime}
+                          onChange={handleInputChange}
+                          placeholder="e.g., 15-20 days"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label htmlFor="specifications.customization">Customization Options</label>
+                        <input
+                          type="text"
+                          id="specifications.customization"
+                          name="specifications.customization"
+                          value={newData.specifications.customization}
+                          onChange={handleInputChange}
+                          placeholder="e.g., Logo Printing Available"
+                        />
+                      </div>
+                      
+                      <div className="form-group">
+                        <label htmlFor="specifications.handleLength">Handle Length</label>
+                        <input
+                          type="text"
+                          id="specifications.handleLength"
+                          name="specifications.handleLength"
+                          value={newData.specifications.handleLength}
+                          onChange={handleInputChange}
+                          placeholder="e.g., 10 inches"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-row">
+                      <div className="form-group">
+                        <label htmlFor="specifications.printingMethod">Printing Method</label>
+                        <input
+                          type="text"
+                          id="specifications.printingMethod"
+                          name="specifications.printingMethod"
+                          value={newData.specifications.printingMethod}
+                          onChange={handleInputChange}
+                          placeholder="e.g., Screen Printing"
+                        />
+                      </div>
+                      
+                      <div className="form-group">
+                        <label htmlFor="specifications.colorOptions">Color Options</label>
+                        <input
+                          type="text"
+                          id="specifications.colorOptions"
+                          name="specifications.colorOptions"
+                          value={newData.specifications.colorOptions}
+                          onChange={handleInputChange}
+                          placeholder="e.g., Natural, Custom Colors"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="specifications.packaging">Packaging Details</label>
+                      <input
+                        type="text"
+                        id="specifications.packaging"
+                        name="specifications.packaging"
+                        value={newData.specifications.packaging}
+                        onChange={handleInputChange}
+                        placeholder="e.g., 100 units per carton"
+                      />
                     </div>
                   </div>
                 </>
@@ -560,7 +797,7 @@ const AdminPanel = () => {
                       <>
                         <div className="item-image">
                           <img 
-                            src={item.image ? `http://localhost:5000${item.image}` : '/images/category-placeholder.jpg'} 
+                            src={getImageUrl(item.image)} 
                             alt={item.name}
                             onError={(e) => {
                               e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjVmN2Y5Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtc2l6ZT0iMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIiBmaWxsPSIjODg4Ij5DYXRlZ29yeSUyMEltYWdlJTNDL3RleHQ+PC9zdmc+';
@@ -578,7 +815,7 @@ const AdminPanel = () => {
                       <>
                         <div className="item-image">
                           <img 
-                            src={item.image ? `http://localhost:5000${item.image}` : '/images/product-placeholder.jpg'} 
+                            src={getImageUrl(item.image)} 
                             alt={item.name}
                             onError={(e) => {
                               e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjUwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjVmN2Y5Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtc2l6ZT0iMTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIiBmaWxsPSIjODg4Ij5Qcm9kdWN0JTIwSW1hZ2UlM0MvdGV4dD48L3N2Zz4=';
@@ -594,6 +831,13 @@ const AdminPanel = () => {
                             <span className="price">{item.priceRange}</span>
                             <span className="moq">MOQ: {item.moq}</span>
                           </div>
+                          {item.specifications && (
+                            <div className="item-specs">
+                              <small>
+                                <strong>Material:</strong> {item.specifications.material || 'Not specified'}
+                              </small>
+                            </div>
+                          )}
                         </div>
                       </>
                     )}

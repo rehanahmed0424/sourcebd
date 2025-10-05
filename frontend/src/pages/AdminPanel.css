@@ -486,3 +486,72 @@
     flex-direction: column;
   }
 }
+/* Additional styles for enhanced admin panel */
+
+/* Form Sections */
+.form-section {
+  margin-bottom: 30px;
+  padding: 25px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.form-section h3 {
+  color: #2d4d31;
+  margin-bottom: 20px;
+  font-size: 1.2rem;
+  border-bottom: 2px solid #2d4d31;
+  padding-bottom: 10px;
+}
+
+/* Item Specs in product list */
+.item-specs {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #e9ecef;
+}
+
+.item-specs small {
+  color: #666;
+  font-size: 0.85rem;
+}
+
+/* Enhanced file upload preview */
+.image-preview {
+  margin-top: 15px;
+  text-align: center;
+  padding: 15px;
+  background: white;
+  border-radius: 8px;
+  border: 2px dashed #e9ecef;
+}
+
+.image-preview img {
+  max-width: 200px;
+  max-height: 150px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+}
+
+.image-preview p {
+  margin-top: 8px;
+  color: #666;
+  font-size: 0.9rem;
+  word-break: break-all;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .form-section {
+    padding: 15px;
+  }
+  
+  .form-section h3 {
+    font-size: 1.1rem;
+  }
+  
+  .item-specs {
+    font-size: 0.8rem;
+  }
+}

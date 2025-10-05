@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import ProductCard from '../components/ProductCard';
+import './Homepage.css';
 
 const HomePage = () => {
   const [categories, setCategories] = useState([]);
@@ -41,10 +43,10 @@ const HomePage = () => {
   ];
 
   const getFallbackProducts = () => [
-    { _id: '1', name: "Eco-Friendly Jute Bags", supplier: "Dhaka Jute Mills Ltd.", priceRange: "$2.50 - $4.00", moq: 500, image: "/images/jute-bags.jpg", verified: true, featured: true },
-    { _id: '2', name: "100% Cotton T-Shirts", supplier: "Chittagong Textiles", priceRange: "$4.20 - $6.50", moq: 100, image: "/images/tshirts.jpg", verified: true, featured: true },
-    { _id: '3', name: "Genuine Leather Wallets", supplier: "Sylhet Leather Co.", priceRange: "$8.00 - $12.00", moq: 50, image: "/images/leather.jpg", verified: false, featured: true },
-    { _id: '4', name: "Ceramic Dinner Set", supplier: "Rajshahi Ceramics", priceRange: "$25.00 - $40.00", moq: 20, image: "/images/ceramics.jpg", verified: true, featured: true },
+    { _id: '1', name: "Eco-Friendly Jute Bags", supplier: "Dhaka Jute Mills Ltd.", priceRange: "$2.50 - $4.00", moq: 500, image: "/images/jute-bags.jpg", verified: true, featured: true, categoryId: { name: "Textile & Apparel" } },
+    { _id: '2', name: "100% Cotton T-Shirts", supplier: "Chittagong Textiles", priceRange: "$4.20 - $6.50", moq: 100, image: "/images/tshirts.jpg", verified: true, featured: true, categoryId: { name: "Textile & Apparel" } },
+    { _id: '3', name: "Genuine Leather Wallets", supplier: "Sylhet Leather Co.", priceRange: "$8.00 - $12.00", moq: 50, image: "/images/leather.jpg", verified: false, featured: true, categoryId: { name: "Textile & Apparel" } },
+    { _id: '4', name: "Ceramic Dinner Set", supplier: "Rajshahi Ceramics", priceRange: "$25.00 - $40.00", moq: 20, image: "/images/ceramics.jpg", verified: true, featured: true, categoryId: { name: "Home & Living" } },
   ];
 
   const getFallbackTestimonials = () => [
@@ -142,13 +144,10 @@ const HomePage = () => {
   }, []);
 
   // Handle image loading errors
-
-const handleImageError = (e, type) => {
-  console.warn(`Image failed to load for ${type}:`, e.target.src);
-  // Use a simple placeholder that will work with cover
-  e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjVmN2Y5Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtc2l6ZT0iMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIiBmaWxsPSIjODg4Ij5Qcm9kdWN0IEltYWdlPC90ZXh0Pjwvc3ZnPg==';
-  e.target.style.objectFit = 'cover'; // Force cover on error
-};
+  const handleImageError = (e, type) => {
+    console.warn(`Image failed to load for ${type}:`, e.target.src);
+    e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjVmN2Y5Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtc2l6ZT0iMTgiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIiBmaWxsPSIjODg4Ij5JbWFnZSUyME5vdCUyMEF2YWlsYWJsZTwvdGV4dD48L3N2Zz4=';
+  };
 
   if (loading) {
     return (
@@ -163,26 +162,6 @@ const handleImageError = (e, type) => {
     );
   }
 
-  // Add this function inside your HomePage component, before the return statement
-const getProductImageUrl = (imagePath, productName) => {
-  if (!imagePath) {
-    // Return a placeholder image if no image path is provided
-    return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjVmN2Y5Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtc2l6ZT0iMTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIiBmaWxsPSIjNjY2Ij5ObyBJbWFnZTwvdGV4dD48L3N2Zz4=';
-  }
-  
-  // Check if it's already a full URL
-  if (imagePath.startsWith('http')) {
-    return imagePath;
-  }
-  
-  // Check if it's a data URL (base64)
-  if (imagePath.startsWith('data:')) {
-    return imagePath;
-  }
-  
-  // Prepend the server URL for relative paths
-  return `http://localhost:5000${imagePath}`;
-};
   return (
     <main>
       {/* API Status Banner */}
@@ -204,7 +183,6 @@ const getProductImageUrl = (imagePath, productName) => {
           <div className="hero-content">
             <h1>Bangladesh's Premier B2B Marketplace</h1>
             <p>Connect with verified suppliers, source quality products, and grow your business with SourceBd</p>
-            {/* Removed the hero-buttons section completely */}
           </div>
         </div>
       </section>
@@ -239,60 +217,21 @@ const getProductImageUrl = (imagePath, productName) => {
         </div>
       </section>
 
-  {/* Featured Products */}
-<section className="featured-products section">
-  <div className="container">
-    <div className="section-title">
-      <h2>Featured Products</h2>
-      <p>Quality products from verified suppliers across Bangladesh</p>
-    </div>
-    <div className="products-grid">
-      {featuredProducts.map((product) => (
-        <div key={product._id} className="product-card">
-          <div className="product-image">
-            {product.verified && <span className="verified-badge">Verified</span>}
-            {product.featured && <span className="featured-badge">Featured</span>}
-            <img 
-              src={getProductImageUrl(product.image, product.name)} 
-              alt={product.name}
-              onError={(e) => {
-                console.warn(`Image failed to load for product: ${product.name}`);
-                // Replace with a proper placeholder that will definitely work
-                e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjVmN2Y5Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtc2l6ZT0iMTYiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIiBmaWxsPSIjNjY2Ij5Qcm9kdWN0IEltYWdlPC90ZXh0Pjwvc3ZnPg==';
-                e.target.style.objectFit = 'cover';
-                e.target.onerror = null; // Prevent infinite loop
-              }}
-              onLoad={(e) => {
-                // Ensure cover is applied when image loads successfully
-                e.target.style.objectFit = 'cover';
-              }}
-            />
+      {/* Featured Products */}
+      <section className="featured-products section">
+        <div className="container">
+          <div className="section-title">
+            <h2>Featured Products</h2>
+            <p>Quality products from verified suppliers across Bangladesh</p>
           </div>
-          <div className="product-content">
-            <h3>{product.name}</h3>
-            <p className="supplier">{product.supplier}</p>
-            <div className="product-details">
-              <div className="price-container">
-                <span className="price-label">Price Range:</span>
-                <span className="price">{product.priceRange}</span>
-              </div>
-              <span className="moq">MOQ: {product.moq}</span>
-            </div>
-            <div className="product-actions">
-              <Link to={`/product/${product._id}`} className="btn-view-details">
-                <i className="fas fa-eye"></i>
-                View Details
-              </Link>
-              <button className="icon-btn" title="Add to favorites">
-                <i className="far fa-heart"></i>
-              </button>
-            </div>
+          <div className="products-grid">
+            {featuredProducts.map((product) => (
+              <ProductCard key={product._id} product={product} />
+            ))}
           </div>
         </div>
-      ))}
-    </div>
-  </div>
-</section>
+      </section>
+
       {/* How It Works */}
       <section className="how-it-works section">
         <div className="container">
