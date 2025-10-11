@@ -7,7 +7,6 @@ const AdminPanel = () => {
   const [newData, setNewData] = useState({
     name: '',
     description: '',
-    priceRange: '',
     moq: 1,
     supplier: '',
     categoryId: '',
@@ -17,7 +16,6 @@ const AdminPanel = () => {
     text: '',
     author: '',
     imagePreview: null,
-    // New fields for enhanced product details
     specifications: {
       material: '',
       size: '',
@@ -32,6 +30,13 @@ const AdminPanel = () => {
     reviewCount: 0,
     orderCount: 0
   });
+  
+  const [tieredPricing, setTieredPricing] = useState([
+    { minQty: 1, maxQty: 100, price: '' },
+    { minQty: 101, maxQty: 500, price: '' },
+    { minQty: 501, maxQty: 0, price: '' }
+  ]);
+  
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
   const [testimonials, setTestimonials] = useState([]);
@@ -39,6 +44,27 @@ const AdminPanel = () => {
   const [success, setSuccess] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  // Tiered Pricing Functions
+  const addTier = () => {
+    const lastTier = tieredPricing[tieredPricing.length - 1];
+    const newMinQty = lastTier.maxQty > 0 ? lastTier.maxQty + 1 : 1;
+    setTieredPricing([...tieredPricing, { minQty: newMinQty, maxQty: 0, price: '' }]);
+  };
+
+  const removeTier = (index) => {
+    if (tieredPricing.length > 1) {
+      const newTiers = [...tieredPricing];
+      newTiers.splice(index, 1);
+      setTieredPricing(newTiers);
+    }
+  };
+
+  const updateTier = (index, field, value) => {
+    const newTiers = [...tieredPricing];
+    newTiers[index][field] = value;
+    setTieredPricing(newTiers);
+  };
 
   // Image URL helper function
   const getImageUrl = (imagePath) => {
@@ -93,7 +119,7 @@ const AdminPanel = () => {
   }, [adminType]);
 
   const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value, type, checked, files } = e.target;
     
     if (name.startsWith('specifications.')) {
       const specField = name.split('.')[1];
@@ -107,14 +133,12 @@ const AdminPanel = () => {
     } else if (type === 'checkbox') {
       setNewData((prev) => ({ ...prev, [name]: checked }));
     } else if (type === 'file') {
-      const file = e.target.files[0];
+      const file = files[0];
       if (file) {
-        // Validate file type
         if (!file.type.startsWith('image/')) {
           setError('Please select a valid image file (JPEG, PNG, etc.)');
           return;
         }
-        // Validate file size (max 5MB)
         if (file.size > 5 * 1024 * 1024) {
           setError('Image size should be less than 5MB');
           return;
@@ -124,120 +148,139 @@ const AdminPanel = () => {
           image: file,
           imagePreview: URL.createObjectURL(file)
         }));
-        setError(null); // Clear any previous errors
+        setError(null);
       }
     } else {
       setNewData((prev) => ({ ...prev, [name]: value }));
     }
   };
 
-  const handleAddData = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-    setSuccess(null);
+// In AdminPanel.jsx - Update the handleAddData function with correct form data structure
+const handleAddData = async (e) => {
+  e.preventDefault();
+  setLoading(true);
+  setError(null);
+  setSuccess(null);
 
-    // Validation
-    if (!newData.name && adminType !== 'testimonials') {
-      setError('Name is required');
+  // Validation
+  if (!newData.name && adminType !== 'testimonials') {
+    setError('Name is required');
+    setLoading(false);
+    return;
+  }
+
+  if (adminType === 'products' && !newData.categoryId) {
+    setError('Please select a category');
+    setLoading(false);
+    return;
+  }
+
+  if (adminType === 'testimonials' && (!newData.text || !newData.author)) {
+    setError('Text and author are required for testimonials');
+    setLoading(false);
+    return;
+  }
+
+  if ((adminType === 'categories' || adminType === 'products') && !newData.image) {
+    setError('Image is required');
+    setLoading(false);
+    return;
+  }
+
+  if (adminType === 'products') {
+    const validTiers = tieredPricing.filter(tier => tier.price && tier.price > 0);
+    if (validTiers.length === 0) {
+      setError('At least one price tier with valid price is required');
       setLoading(false);
       return;
     }
+  }
 
-    if (adminType === 'products' && !newData.categoryId) {
-      setError('Please select a category');
-      setLoading(false);
-      return;
+  const formData = new FormData();
+  
+  // Add basic fields
+  formData.append('name', newData.name);
+  formData.append('description', newData.description);
+  formData.append('moq', newData.moq.toString());
+  formData.append('supplier', newData.supplier);
+  if (newData.categoryId) formData.append('categoryId', newData.categoryId);
+  formData.append('verified', newData.verified.toString());
+  formData.append('featured', newData.featured.toString());
+  formData.append('reviewCount', newData.reviewCount.toString());
+  formData.append('orderCount', newData.orderCount.toString());
+  
+  // Add image
+  if (newData.image) {
+    formData.append('image', newData.image);
+  }
+
+  // Add specifications
+  Object.keys(newData.specifications).forEach(specKey => {
+    if (newData.specifications[specKey]) {
+      formData.append(`specifications[${specKey}]`, newData.specifications[specKey]);
     }
+  });
 
-    if (adminType === 'testimonials' && (!newData.text || !newData.author)) {
-      setError('Text and author are required for testimonials');
-      setLoading(false);
-      return;
+  // Add tiered pricing - USE CORRECT FORM DATA STRUCTURE
+  tieredPricing.forEach((tier, index) => {
+    if (tier.price && tier.price > 0) {
+      formData.append(`tieredPricing[${index}].minQty`, tier.minQty.toString());
+      formData.append(`tieredPricing[${index}].maxQty`, tier.maxQty.toString());
+      formData.append(`tieredPricing[${index}].price`, tier.price.toString());
     }
+  });
 
-    // Enhanced image validation
-    if ((adminType === 'categories' || adminType === 'products') && !newData.image) {
-      setError('Image is required');
-      setLoading(false);
-      return;
-    }
+  // Debug: Log form data
+  console.log('=== FORM DATA BEING SENT ===');
+  for (let pair of formData.entries()) {
+    console.log(pair[0] + ': ' + pair[1]);
+  }
 
-    const formData = new FormData();
+  try {
+    const endpoint = `/api/${adminType}`;
+    console.log('Submitting to:', endpoint);
     
-    // Add common fields with better logging
-    console.log('Submitting form data:', {
-      name: newData.name,
-      image: newData.image ? newData.image.name : 'No image',
-      adminType: adminType,
-      specifications: newData.specifications
+    const response = await fetch(`http://localhost:5000${endpoint}`, {
+      method: 'POST',
+      body: formData,
     });
 
-    Object.keys(newData).forEach((key) => {
-      if (key === 'image' && newData[key]) {
-        formData.append('image', newData[key]);
-        console.log('Added image to formData:', newData[key].name);
-      } else if (key === 'specifications') {
-        // Handle specifications object
-        Object.keys(newData.specifications).forEach(specKey => {
-          if (newData.specifications[specKey]) {
-            formData.append(`specifications[${specKey}]`, newData.specifications[specKey]);
-          }
-        });
-      } else if (key !== 'imagePreview' && newData[key] !== null && newData[key] !== '') {
-        formData.append(key, newData[key]);
-      }
-    });
-
-    try {
-      const endpoint = `/api/${adminType}`;
-      console.log('Making request to:', `http://localhost:5000${endpoint}`);
-      
-      const response = await fetch(`http://localhost:5000${endpoint}`, {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Server error response:', errorData);
-        throw new Error(errorData.message || `Failed to add ${adminType}`);
-      }
-      
-      const result = await response.json();
-      console.log('Success response:', result);
-      setSuccess(`${adminType.slice(0, -1)} added successfully!`);
-      
-      // Refresh the data list
-      const refreshResponse = await fetch(`http://localhost:5000/api/${adminType}`);
-      if (refreshResponse.ok) {
-        const refreshData = await refreshResponse.json();
-        console.log('Refreshed data:', refreshData);
-        switch (adminType) {
-          case 'categories':
-            setCategories(refreshData);
-            break;
-          case 'products':
-            setProducts(refreshData);
-            break;
-          case 'testimonials':
-            setTestimonials(refreshData);
-            break;
-          default:
-            break;
-        }
-      }
-      
-      resetForm();
-      
-    } catch (err) {
-      console.error('Error in handleAddData:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
+    const result = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(result.error || `Failed to add ${adminType}`);
     }
-  };
-
+    
+    setSuccess(`${adminType.slice(0, -1)} added successfully!`);
+    
+    // Refresh the data list
+    const refreshResponse = await fetch(`http://localhost:5000/api/${adminType}`);
+    if (refreshResponse.ok) {
+      const refreshData = await refreshResponse.json();
+      switch (adminType) {
+        case 'categories':
+          setCategories(refreshData);
+          break;
+        case 'products':
+          setProducts(refreshData);
+          break;
+        case 'testimonials':
+          setTestimonials(refreshData);
+          break;
+        default:
+          break;
+      }
+    }
+    
+    resetForm();
+    
+  } catch (err) {
+    console.error('Error in handleAddData:', err);
+    setError(err.message);
+  } finally {
+    setLoading(false);
+  }
+};
   const handleDelete = async (id) => {
     if (!window.confirm(`Are you sure you want to delete this ${adminType.slice(0, -1)}?`)) {
       return;
@@ -252,7 +295,6 @@ const AdminPanel = () => {
         throw new Error(`Failed to delete ${adminType.slice(0, -1)}`);
       }
 
-      // Remove from state
       switch (adminType) {
         case 'categories':
           setCategories(categories.filter(item => item._id !== id));
@@ -277,7 +319,6 @@ const AdminPanel = () => {
     setNewData({
       name: '',
       description: '',
-      priceRange: '',
       moq: 1,
       supplier: '',
       categoryId: '',
@@ -301,6 +342,11 @@ const AdminPanel = () => {
       reviewCount: 0,
       orderCount: 0
     });
+    setTieredPricing([
+      { minQty: 1, maxQty: 100, price: '' },
+      { minQty: 101, maxQty: 500, price: '' },
+      { minQty: 501, maxQty: 0, price: '' }
+    ]);
   };
 
   const handleTabChange = (type) => {
@@ -466,19 +512,6 @@ const AdminPanel = () => {
                     
                     <div className="form-row">
                       <div className="form-group">
-                        <label htmlFor="priceRange">Price Range *</label>
-                        <input
-                          type="text"
-                          id="priceRange"
-                          name="priceRange"
-                          value={newData.priceRange}
-                          onChange={handleInputChange}
-                          placeholder="e.g., $2.50 - $4.00"
-                          required
-                        />
-                      </div>
-                      
-                      <div className="form-group">
                         <label htmlFor="moq">Minimum Order Quantity (MOQ) *</label>
                         <input
                           type="number"
@@ -491,9 +524,7 @@ const AdminPanel = () => {
                           required
                         />
                       </div>
-                    </div>
-
-                    <div className="form-row">
+                      
                       <div className="form-group">
                         <label htmlFor="reviewCount">Review Count</label>
                         <input
@@ -506,7 +537,9 @@ const AdminPanel = () => {
                           placeholder="e.g., 28"
                         />
                       </div>
-                      
+                    </div>
+
+                    <div className="form-row">
                       <div className="form-group">
                         <label htmlFor="orderCount">Order Count</label>
                         <input
@@ -519,22 +552,22 @@ const AdminPanel = () => {
                           placeholder="e.g., 125"
                         />
                       </div>
-                    </div>
-                    
-                    <div className="form-group">
-                      <label htmlFor="categoryId">Category *</label>
-                      <select
-                        id="categoryId"
-                        name="categoryId"
-                        value={newData.categoryId}
-                        onChange={handleInputChange}
-                        required
-                      >
-                        <option value="">Select a category</option>
-                        {categories.map((cat) => (
-                          <option key={cat._id} value={cat._id}>{cat.name}</option>
-                        ))}
-                      </select>
+                      
+                      <div className="form-group">
+                        <label htmlFor="categoryId">Category *</label>
+                        <select
+                          id="categoryId"
+                          name="categoryId"
+                          value={newData.categoryId}
+                          onChange={handleInputChange}
+                          required
+                        >
+                          <option value="">Select a category</option>
+                          {categories.map((cat) => (
+                            <option key={cat._id} value={cat._id}>{cat.name}</option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
                     
                     <div className="form-group">
@@ -601,6 +634,72 @@ const AdminPanel = () => {
                         </label>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Tiered Pricing Section */}
+                  <div className="form-section">
+                    <h3>Tiered Pricing (Like Alibaba)</h3>
+                    <p className="section-description">Add multiple price tiers for different quantity ranges. Use 0 for max quantity to indicate no upper limit.</p>
+                    
+                    {tieredPricing.map((tier, index) => (
+                      <div key={index} className="tier-row">
+                        <div className="form-row">
+                          <div className="form-group">
+                            <label>Minimum Quantity *</label>
+                            <input
+                              type="number"
+                              value={tier.minQty}
+                              onChange={(e) => updateTier(index, 'minQty', parseInt(e.target.value) || 0)}
+                              min="1"
+                              placeholder="e.g., 100"
+                              required
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label>Maximum Quantity *</label>
+                            <input
+                              type="number"
+                              value={tier.maxQty}
+                              onChange={(e) => updateTier(index, 'maxQty', parseInt(e.target.value) || 0)}
+                              min="0"
+                              placeholder="e.g., 500 (0 for no maximum)"
+                              required
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label>Price per Unit ($) *</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={tier.price}
+                              onChange={(e) => updateTier(index, 'price', e.target.value)}
+                              min="0.01"
+                              placeholder="e.g., 2.50"
+                              required
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label>&nbsp;</label>
+                            <button
+                              type="button"
+                              className="btn btn-danger"
+                              onClick={() => removeTier(index)}
+                              disabled={tieredPricing.length <= 1}
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    <button
+                      type="button"
+                      className="btn btn-outline"
+                      onClick={addTier}
+                    >
+                      + Add Another Price Tier
+                    </button>
                   </div>
 
                   {/* Specifications Section */}
@@ -828,7 +927,14 @@ const AdminPanel = () => {
                           <h4>{item.name}</h4>
                           <p className="supplier">{item.supplier}</p>
                           <div className="item-details">
-                            <span className="price">{item.priceRange}</span>
+                            {item.tieredPricing && item.tieredPricing.length > 0 ? (
+                              <span className="price">
+                                ${item.tieredPricing[0]?.price?.toFixed(2) || '0.00'} - 
+                                ${item.tieredPricing[item.tieredPricing.length - 1]?.price?.toFixed(2) || '0.00'}
+                              </span>
+                            ) : (
+                              <span className="price">Contact for price</span>
+                            )}
                             <span className="moq">MOQ: {item.moq}</span>
                           </div>
                           {item.specifications && (

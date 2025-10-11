@@ -207,9 +207,6 @@ const HomePage = () => {
                 <div className="category-content">
                   <h3>{category.name}</h3>
                   <p>{category.description}</p>
-                  <Link to={`/category/${category.name.toLowerCase().replace(' & ', '-').replace(' ', '-')}`} className="btn btn-small">
-                    Explore Products
-                  </Link>
                 </div>
               </div>
             ))}

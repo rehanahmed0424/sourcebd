@@ -109,12 +109,15 @@ const categorySchema = new mongoose.Schema({
 });
 const Category = mongoose.model('Category', categorySchema);
 
-// Product Model
-// Updated Product Schema
+// Product Model with Tiered Pricing
 const productSchema = new mongoose.Schema({
   name: { type: String, required: true },
   supplier: String,
-  priceRange: String,
+  tieredPricing: [{
+    minQty: { type: Number, required: true },
+    maxQty: { type: Number, required: true },
+    price: { type: Number, required: true }
+  }],
   moq: Number,
   categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
   image: String,
@@ -144,7 +147,46 @@ const testimonialSchema = new mongoose.Schema({
 });
 const Testimonial = mongoose.model('Testimonial', testimonialSchema);
 
-// JWT Secret - Using your existing secret
+// Inquiry Model
+const inquirySchema = new mongoose.Schema({
+  productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
+  productName: String,
+  name: { type: String, required: true },
+  email: { type: String, required: true },
+  company: String,
+  phone: String,
+  message: String,
+  quantity: { type: Number, required: true },
+  status: { type: String, default: 'pending' }, // pending, contacted, closed
+  createdAt: { type: Date, default: Date.now }
+});
+const Inquiry = mongoose.model('Inquiry', inquirySchema);
+
+// Cart Model
+const cartSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  items: [{
+    productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
+    quantity: { type: Number, required: true },
+    unitPrice: { type: Number, required: true },
+    addedAt: { type: Date, default: Date.now }
+  }],
+  updatedAt: { type: Date, default: Date.now }
+});
+const Cart = mongoose.model('Cart', cartSchema);
+
+// Wishlist Model
+const wishlistSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  products: [{
+    productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
+    addedAt: { type: Date, default: Date.now }
+  }],
+  updatedAt: { type: Date, default: Date.now }
+});
+const Wishlist = mongoose.model('Wishlist', wishlistSchema);
+
+// JWT Secret
 const JWT_SECRET = process.env.JWT_SECRET || 'sourcebd-jwt-secret-2024';
 
 // Generate JWT Token
@@ -164,9 +206,8 @@ const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
-// Email Configuration - Using Brevo (formerly Sendinblue)
+// Email Configuration
 const createTransporter = async () => {
-  // If Brevo credentials are provided
   if (process.env.BREVO_USER && process.env.BREVO_PASS) {
     console.log('📧 Using Brevo SMTP for email delivery...');
     return nodemailer.createTransport({
@@ -180,13 +221,9 @@ const createTransporter = async () => {
     });
   }
   
-  // Fallback to Ethereal for testing
   console.log('🔧 Creating Ethereal test email account (fallback)...');
   const testAccount = await nodemailer.createTestAccount();
-  console.log('✅ Ethereal account created:');
-  console.log('   📧 Email:', testAccount.user);
-  console.log('   🔐 Password:', testAccount.pass);
-  console.log('   🌐 Web: https://ethereal.email');
+  console.log('✅ Ethereal account created:', testAccount.user);
   
   return nodemailer.createTransport({
     host: 'smtp.ethereal.email',
@@ -199,16 +236,13 @@ const createTransporter = async () => {
   });
 };
 
-// REAL Email Sending Function with Brevo
+// Email Sending Function
 const sendOTPEmail = async (email, otp) => {
   try {
     console.log('📧 Attempting to send OTP email to:', email);
     
     const transporter = await createTransporter();
-    
-    // Verify transporter configuration
     await transporter.verify();
-    console.log('✅ SMTP connection verified');
 
     const mailOptions = {
       from: process.env.EMAIL_FROM || '"SourceBd" <noreply@sourcebd.com>',
@@ -220,64 +254,15 @@ const sendOTPEmail = async (email, otp) => {
         <head>
             <meta charset="utf-8">
             <style>
-                body { 
-                    font-family: Arial, sans-serif; 
-                    background-color: #f5f7f9; 
-                    margin: 0; 
-                    padding: 20px; 
-                    line-height: 1.6;
-                }
-                .container { 
-                    max-width: 600px; 
-                    margin: 0 auto; 
-                    background: white; 
-                    border-radius: 10px; 
-                    overflow: hidden; 
-                    box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
-                }
-                .header { 
-                    background: #2d4d31; 
-                    color: white; 
-                    padding: 30px; 
-                    text-align: center; 
-                }
-                .header h1 { 
-                    margin: 0; 
-                    font-size: 28px; 
-                }
-                .content { 
-                    padding: 30px; 
-                }
-                .otp-box { 
-                    background: #f8f9fa; 
-                    border: 2px dashed #2d4d31; 
-                    border-radius: 8px; 
-                    padding: 20px; 
-                    text-align: center; 
-                    margin: 20px 0; 
-                }
-                .otp-code { 
-                    font-size: 32px; 
-                    font-weight: bold; 
-                    color: #2d4d31; 
-                    letter-spacing: 5px; 
-                    margin: 15px 0;
-                }
-                .footer { 
-                    background: #f8f9fa; 
-                    padding: 20px; 
-                    text-align: center; 
-                    color: #666; 
-                    font-size: 12px; 
-                }
-                .note {
-                    background: #fff3cd;
-                    border: 1px solid #ffeaa7;
-                    border-radius: 5px;
-                    padding: 15px;
-                    margin: 15px 0;
-                    color: #856404;
-                }
+                body { font-family: Arial, sans-serif; background-color: #f5f7f9; margin: 0; padding: 20px; line-height: 1.6; }
+                .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+                .header { background: #2d4d31; color: white; padding: 30px; text-align: center; }
+                .header h1 { margin: 0; font-size: 28px; }
+                .content { padding: 30px; }
+                .otp-box { background: #f8f9fa; border: 2px dashed #2d4d31; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0; }
+                .otp-code { font-size: 32px; font-weight: bold; color: #2d4d31; letter-spacing: 5px; margin: 15px 0; }
+                .footer { background: #f8f9fa; padding: 20px; text-align: center; color: #666; font-size: 12px; }
+                .note { background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px; padding: 15px; margin: 15px 0; color: #856404; }
             </style>
         </head>
         <body>
@@ -289,17 +274,14 @@ const sendOTPEmail = async (email, otp) => {
                 <div class="content">
                     <h2>Password Reset Request</h2>
                     <p>You requested to reset your password for your SourceBd account.</p>
-                    
                     <div class="otp-box">
                         <p style="margin: 0 0 15px 0; color: #666;">Your One-Time Password (OTP) is:</p>
                         <div class="otp-code">${otp}</div>
                         <p style="margin: 15px 0 0 0; color: #666; font-size: 14px;">This OTP is valid for 10 minutes</p>
                     </div>
-                    
                     <div class="note">
                         <strong>Note:</strong> Enter this code on the password reset page to complete the process.
                     </div>
-                    
                     <p>If you didn't request this password reset, please ignore this email and your account will remain secure.</p>
                 </div>
                 <div class="footer">
@@ -314,35 +296,24 @@ const sendOTPEmail = async (email, otp) => {
 
     const info = await transporter.sendMail(mailOptions);
     
-    // For Ethereal emails, show the preview URL
     if (info.messageId && nodemailer.getTestMessageUrl) {
       const previewUrl = nodemailer.getTestMessageUrl(info);
       console.log('✅ OTP email sent successfully to:', email);
       console.log('📧 Preview URL:', previewUrl);
-      console.log('   (Using Ethereal test inbox)');
     } else {
       console.log('✅ OTP email sent successfully to:', email);
-      console.log('📧 Message ID:', info.messageId);
-      console.log('   (Using Brevo - real email delivery)');
     }
     
     return true;
   } catch (error) {
     console.error('❌ Email sending failed:', error);
-    
-    // Fallback: Log OTP to console for testing
-    console.log('\n⚠️  Email sending failed! OTP for testing:');
-    console.log(`📧 To: ${email}`);
-    console.log(`🔐 OTP: ${otp}`);
-    console.log('⏰ OTP valid for 10 minutes\n');
-    
+    console.log('\n⚠️  Email sending failed! OTP for testing:', otp);
     return false;
   }
 };
 
 // ===== AUTHENTICATION ROUTES =====
 
-// Registration endpoint
 app.post('/api/register', async (req, res) => {
   try {
     console.log('Registration attempt:', req.body);
@@ -401,7 +372,6 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
-// Login endpoint
 app.post('/api/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -439,7 +409,6 @@ app.post('/api/login', async (req, res) => {
 
 // ===== PASSWORD RESET ROUTES =====
 
-// Send OTP for password reset
 app.post('/api/forgot-password', async (req, res) => {
   try {
     const { email } = req.body;
@@ -450,7 +419,6 @@ app.post('/api/forgot-password', async (req, res) => {
 
     const user = await User.findOne({ email });
     if (!user) {
-      // Return success even if user doesn't exist for security
       return res.json({ 
         success: true,
         message: 'If an account with that email exists, an OTP has been sent.'
@@ -472,12 +440,6 @@ app.post('/api/forgot-password', async (req, res) => {
 
     const emailSent = await sendOTPEmail(email, otpCode);
 
-    if (emailSent) {
-      console.log(`✅ OTP sent successfully to: ${email}`);
-    } else {
-      console.log(`⚠️  OTP email failed for: ${email}, but OTP was saved for testing`);
-    }
-
     res.json({ 
       success: true,
       message: 'If an account with that email exists, an OTP has been sent.'
@@ -489,7 +451,6 @@ app.post('/api/forgot-password', async (req, res) => {
   }
 });
 
-// Verify OTP
 app.post('/api/verify-otp', async (req, res) => {
   try {
     const { email, otp } = req.body;
@@ -523,7 +484,6 @@ app.post('/api/verify-otp', async (req, res) => {
   }
 });
 
-// Reset password with OTP
 app.post('/api/reset-password', async (req, res) => {
   try {
     const { email, otp, newPassword } = req.body;
@@ -682,26 +642,94 @@ app.get('/api/products/:id', async (req, res) => {
   }
 });
 
-// In your server.js, update the product POST route:
+// In server.js - Completely rewrite the product creation route
 app.post('/api/products', upload.single('image'), async (req, res) => {
   try {
+    console.log('=== PRODUCT CREATION REQUEST ===');
+    console.log('Request body keys:', Object.keys(req.body));
+    
+    // Log all form fields for debugging
+    console.log('All form fields:');
+    Object.keys(req.body).forEach(key => {
+      console.log(`${key}:`, req.body[key]);
+    });
+
     const { 
-      name, supplier, priceRange, moq, categoryId, 
+      name, supplier, moq, categoryId, 
       verified, featured, description, reviewCount, orderCount
     } = req.body;
     
+    // Basic validation
     if (!name || !categoryId) {
       return res.status(400).json({ error: 'Product name and category are required' });
     }
 
+    // Check if category exists
     const category = await Category.findById(categoryId);
     if (!category) {
       return res.status(400).json({ error: 'Category not found' });
     }
 
+    // Handle image
     const image = req.file ? req.file.filename : null;
 
-    // Build specifications object from form data
+    // Parse tiered pricing - NEW APPROACH
+    const tieredPricing = [];
+    console.log('=== PARSING TIERED PRICING ===');
+    
+    // Look for tiered pricing fields with dot notation
+    const tierKeys = Object.keys(req.body).filter(key => key.startsWith('tieredPricing['));
+    console.log('Found tier keys:', tierKeys);
+    
+    // Group by index
+    const tiersByIndex = {};
+    
+    tierKeys.forEach(key => {
+      // Extract index and field name from key like "tieredPricing[0].minQty"
+      const match = key.match(/tieredPricing\[(\d+)\]\.(\w+)/);
+      if (match) {
+        const index = match[1];
+        const field = match[2];
+        const value = req.body[key];
+        
+        if (!tiersByIndex[index]) {
+          tiersByIndex[index] = {};
+        }
+        tiersByIndex[index][field] = value;
+      }
+    });
+    
+    console.log('Tiers by index:', tiersByIndex);
+    
+    // Process each tier
+    Object.keys(tiersByIndex).forEach(index => {
+      const tier = tiersByIndex[index];
+      console.log(`Processing tier ${index}:`, tier);
+      
+      if (tier.price && tier.price > 0) {
+        const minQty = parseInt(tier.minQty) || 1;
+        const maxQty = parseInt(tier.maxQty) || 0;
+        const price = parseFloat(tier.price);
+        
+        if (!isNaN(price) && price > 0) {
+          tieredPricing.push({
+            minQty: minQty,
+            maxQty: maxQty,
+            price: price
+          });
+          console.log(`✅ Added tier ${index}:`, { minQty, maxQty, price });
+        }
+      }
+    });
+
+    console.log('Final tiered pricing:', tieredPricing);
+
+    // Validate tiered pricing
+    if (tieredPricing.length === 0) {
+      return res.status(400).json({ error: 'At least one valid price tier is required' });
+    }
+
+    // Build specifications
     const specifications = {};
     const specFields = [
       'material', 'size', 'weightCapacity', 'leadTime', 'customization',
@@ -709,30 +737,38 @@ app.post('/api/products', upload.single('image'), async (req, res) => {
     ];
     
     specFields.forEach(field => {
-      if (req.body[`specifications[${field}]`]) {
-        specifications[field] = req.body[`specifications[${field}]`];
+      const value = req.body[`specifications[${field}]`];
+      if (value && value.trim() !== '') {
+        specifications[field] = value.trim();
       }
     });
 
-    const newProduct = new Product({
-      name,
-      supplier,
-      priceRange,
+    console.log('Specifications:', specifications);
+
+    // Create product data
+    const productData = {
+      name: name,
+      supplier: supplier,
+      tieredPricing: tieredPricing,
       moq: parseInt(moq) || 1,
-      categoryId,
-      image,
-      verified: verified === 'true',
-      featured: featured === 'true',
-      description,
+      categoryId: categoryId,
+      image: image,
+      verified: verified === 'true' || verified === true,
+      featured: featured === 'true' || featured === true,
+      description: description || '',
       reviewCount: parseInt(reviewCount) || 0,
       orderCount: parseInt(orderCount) || 0,
-      specifications
-    });
+      specifications: specifications
+    };
 
+    console.log('Final product data:', productData);
+
+    // Create and save product
+    const newProduct = new Product(productData);
     await newProduct.save();
     await newProduct.populate('categoryId', 'name');
 
-    console.log('✅ Product created with specifications:', specifications);
+    console.log('✅ Product created successfully:', newProduct._id);
 
     res.status(201).json({ 
       message: 'Product added successfully',
@@ -740,8 +776,9 @@ app.post('/api/products', upload.single('image'), async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Product creation error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('❌ Product creation error:', error);
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ error: 'Internal server error: ' + error.message });
   }
 });
 
@@ -764,6 +801,139 @@ app.delete('/api/products/:id', async (req, res) => {
   } catch (error) {
     console.error('Product deletion error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// ===== INQUIRY ROUTES =====
+app.post('/api/inquiries', async (req, res) => {
+  try {
+    const { productId, productName, name, email, company, phone, message, quantity } = req.body;
+
+    if (!productId || !name || !email || !quantity) {
+      return res.status(400).json({ error: 'Product, name, email, and quantity are required' });
+    }
+
+    const newInquiry = new Inquiry({
+      productId,
+      productName,
+      name,
+      email,
+      company,
+      phone,
+      message,
+      quantity
+    });
+
+    await newInquiry.save();
+
+    res.status(201).json({ 
+      message: 'Inquiry submitted successfully',
+      inquiry: newInquiry
+    });
+
+  } catch (error) {
+    console.error('Inquiry creation error:', error);
+    res.status(500).json({ error: 'Failed to submit inquiry' });
+  }
+});
+
+// ===== CART ROUTES =====
+app.get('/api/cart/:userId', async (req, res) => {
+  try {
+    const cart = await Cart.findOne({ userId: req.params.userId })
+      .populate('items.productId');
+    res.json(cart || { items: [] });
+  } catch (error) {
+    console.error('Cart fetch error:', error);
+    res.status(500).json({ error: 'Failed to fetch cart' });
+  }
+});
+
+app.post('/api/cart/:userId', async (req, res) => {
+  try {
+    const { productId, quantity, unitPrice } = req.body;
+
+    let cart = await Cart.findOne({ userId: req.params.userId });
+
+    if (!cart) {
+      cart = new Cart({ userId: req.params.userId, items: [] });
+    }
+
+    const existingItemIndex = cart.items.findIndex(
+      item => item.productId.toString() === productId
+    );
+
+    if (existingItemIndex > -1) {
+      cart.items[existingItemIndex].quantity += quantity;
+    } else {
+      cart.items.push({
+        productId,
+        quantity,
+        unitPrice
+      });
+    }
+
+    cart.updatedAt = new Date();
+    await cart.save();
+    await cart.populate('items.productId');
+
+    res.json({ 
+      message: 'Item added to cart',
+      cart 
+    });
+
+  } catch (error) {
+    console.error('Cart update error:', error);
+    res.status(500).json({ error: 'Failed to update cart' });
+  }
+});
+
+// ===== WISHLIST ROUTES =====
+app.get('/api/wishlist/:userId', async (req, res) => {
+  try {
+    const wishlist = await Wishlist.findOne({ userId: req.params.userId })
+      .populate('products.productId');
+    res.json(wishlist || { products: [] });
+  } catch (error) {
+    console.error('Wishlist fetch error:', error);
+    res.status(500).json({ error: 'Failed to fetch wishlist' });
+  }
+});
+
+app.post('/api/wishlist/:userId', async (req, res) => {
+  try {
+    const { productId } = req.body;
+
+    let wishlist = await Wishlist.findOne({ userId: req.params.userId });
+
+    if (!wishlist) {
+      wishlist = new Wishlist({ userId: req.params.userId, products: [] });
+    }
+
+    const existingProductIndex = wishlist.products.findIndex(
+      item => item.productId.toString() === productId
+    );
+
+    if (existingProductIndex > -1) {
+      // Remove from wishlist if already exists
+      wishlist.products.splice(existingProductIndex, 1);
+    } else {
+      // Add to wishlist
+      wishlist.products.push({ productId });
+    }
+
+    wishlist.updatedAt = new Date();
+    await wishlist.save();
+    await wishlist.populate('products.productId');
+
+    res.json({ 
+      message: 'Wishlist updated',
+      wishlist 
+    });
+
+  } catch (error) {
+    console.error('Wishlist update error:', error);
+    res.status(500).json({ error: 'Failed to update wishlist' });
   }
 });
 
@@ -832,8 +1002,6 @@ app.get('/api/user/:id', async (req, res) => {
 });
 
 // ===== ENHANCED SEARCH ROUTES =====
-
-// Enhanced search endpoint with category search and filtering
 app.get('/api/search', async (req, res) => {
   try {
     const { q: query, category, minPrice, maxPrice, sortBy, verified, featured } = req.query;
@@ -845,16 +1013,14 @@ app.get('/api/search', async (req, res) => {
     const searchTerm = query.trim();
     console.log('🔍 Enhanced search for:', searchTerm);
 
-    // Build search query
     let searchQuery = {
       $or: [
         { name: { $regex: searchTerm, $options: 'i' } },
         { supplier: { $regex: searchTerm, $options: 'i' } },
-        { priceRange: { $regex: searchTerm, $options: 'i' } }
+        { description: { $regex: searchTerm, $options: 'i' } }
       ]
     };
 
-    // Add category search - search in category names too
     const matchingCategories = await Category.find({
       name: { $regex: searchTerm, $options: 'i' }
     });
@@ -865,7 +1031,6 @@ app.get('/api/search', async (req, res) => {
       });
     }
 
-    // Apply filters
     if (category && category !== 'all') {
       const categoryObj = await Category.findOne({ name: new RegExp(category, 'i') });
       if (categoryObj) {
@@ -881,26 +1046,13 @@ app.get('/api/search', async (req, res) => {
       searchQuery.featured = true;
     }
 
-    // Price range filtering (basic implementation)
-    if (minPrice || maxPrice) {
-      // This is a simplified implementation - you might want to parse actual numbers
-      searchQuery.priceRange = {};
-      if (minPrice) {
-        searchQuery.priceRange.$gte = minPrice;
-      }
-      if (maxPrice) {
-        searchQuery.priceRange.$lte = maxPrice;
-      }
-    }
-
-    // Build sort options
     let sortOptions = {};
     switch (sortBy) {
       case 'price-low':
-        sortOptions = { 'priceRange': 1 };
+        sortOptions = { 'tieredPricing.price': 1 };
         break;
       case 'price-high':
-        sortOptions = { 'priceRange': -1 };
+        sortOptions = { 'tieredPricing.price': -1 };
         break;
       case 'name':
         sortOptions = { 'name': 1 };
@@ -912,15 +1064,11 @@ app.get('/api/search', async (req, res) => {
         sortOptions = { 'featured': -1, 'verified': -1, 'name': 1 };
     }
 
-    // Execute search
     const products = await Product.find(searchQuery)
       .populate('categoryId', 'name')
       .sort(sortOptions);
 
-    // Get all categories for filters
     const allCategories = await Category.find();
-
-    console.log('📦 Found products:', products.length);
 
     res.json({
       query: searchTerm,
@@ -944,7 +1092,6 @@ app.get('/api/search', async (req, res) => {
   }
 });
 
-// Get all categories for search filters
 app.get('/api/categories/search', async (req, res) => {
   try {
     const categories = await Category.find().select('name');
@@ -954,6 +1101,7 @@ app.get('/api/categories/search', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch categories' });
   }
 });
+
 // ===== HEALTH CHECK =====
 app.get('/api/health', (req, res) => {
   res.json({ 
@@ -979,39 +1127,29 @@ app.get('/api/fallback/categories', (req, res) => {
       name: "Agriculture", 
       description: "Fresh produce, processed foods, spices",
       image: "/images/agriculture.jpg"
-    },
-    { 
-      _id: '3', 
-      name: "Electronics", 
-      description: "Consumer electronics, components, gadgets",
-      image: "/images/electronics.jpg"
-    },
-    { 
-      _id: '4', 
-      name: "Machinery", 
-      description: "Industrial equipment, tools, parts",
-      image: "/images/machinery.jpg"
-    },
+    }
   ];
   res.json(fallbackCategories);
 });
 
 app.get('/api/fallback/products/featured', (req, res) => {
   const fallbackProducts = [
-    { _id: '1', name: "Eco-Friendly Jute Bags", supplier: "Dhaka Jute Mills Ltd.", priceRange: "$2.50 - $4.00", moq: 500, image: "/images/jute-bags.jpg", verified: true, featured: true },
-    { _id: '2', name: "100% Cotton T-Shirts", supplier: "Chittagong Textiles", priceRange: "$4.20 - $6.50", moq: 100, image: "/images/tshirts.jpg", verified: true, featured: true },
-    { _id: '3', name: "Genuine Leather Wallets", supplier: "Sylhet Leather Co.", priceRange: "$8.00 - $12.00", moq: 50, image: "/images/leather.jpg", verified: false, featured: true },
-    { _id: '4', name: "Ceramic Dinner Set", supplier: "Rajshahi Ceramics", priceRange: "$25.00 - $40.00", moq: 20, image: "/images/ceramics.jpg", verified: true, featured: true },
+    { 
+      _id: '1', 
+      name: "Eco-Friendly Jute Bags", 
+      supplier: "Dhaka Jute Mills Ltd.", 
+      tieredPricing: [
+        { minQty: 1, maxQty: 100, price: 4.00 },
+        { minQty: 101, maxQty: 500, price: 3.50 },
+        { minQty: 501, maxQty: 0, price: 2.50 }
+      ],
+      moq: 500, 
+      image: "/images/jute-bags.jpg", 
+      verified: true, 
+      featured: true 
+    }
   ];
   res.json(fallbackProducts);
-});
-
-app.get('/api/fallback/testimonials', (req, res) => {
-  const fallbackTestimonials = [
-    { _id: '1', text: "SourceBd has transformed how we source products from Bangladesh. The platform is easy to use, and we've found reliable suppliers for our textile business.", author: "Ahmed Rahman, Fashion Importer, UK" },
-    { _id: '2', text: "As a small business owner, finding trustworthy suppliers was always a challenge. SourceBd's verification system gives me confidence in my sourcing decisions.", author: "Sarah Johnson, Boutique Owner, Australia" },
-  ];
-  res.json(fallbackTestimonials);
 });
 
 // ===== ERROR HANDLING =====
@@ -1043,14 +1181,4 @@ app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📍 Health check: http://localhost:${PORT}/api/health`);
   console.log(`📍 API Base: http://localhost:${PORT}/api`);
-  console.log(`🔐 JWT Secret: Using your existing configuration`);
-  
-  if (process.env.BREVO_USER) {
-    console.log(`📧 EMAIL SYSTEM: Using Brevo SMTP (Real emails to any address)`);
-    console.log(`   • Free: 300 emails/day`);
-    console.log(`   • No domain verification needed`);
-  } else {
-    console.log(`📧 EMAIL SYSTEM: Using Ethereal Email (Testing only)`);
-    console.log(`   • Set up Brevo for real emails to any address`);
-  }
 });

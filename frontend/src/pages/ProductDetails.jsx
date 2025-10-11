@@ -1,15 +1,18 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { CartContext } from '../context/CartContext';
+import { WishlistContext } from '../context/WishlistContext';
 import './ProductDetails.css';
 
 const ProductDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const { addToCart } = useContext(CartContext);
+  const { addToWishlist, wishlistItems } = useContext(WishlistContext);
   
   const [product, setProduct] = useState(null);
-  const [relatedProducts, setRelatedProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('description');
@@ -24,6 +27,24 @@ const ProductDetails = () => {
     message: '',
     quantity: 1
   });
+
+  // Check if product is in wishlist
+  const isInWishlist = wishlistItems.some(item => item._id === product?._id);
+
+  // Calculate current price based on quantity
+  const getCurrentPrice = () => {
+    if (!product?.tieredPricing || product.tieredPricing.length === 0) return null;
+    
+    const sortedTiers = [...product.tieredPricing].sort((a, b) => a.minQty - b.minQty);
+    const currentTier = sortedTiers.find(tier => 
+      quantity >= tier.minQty && (tier.maxQty === 0 || quantity <= tier.maxQty)
+    );
+    
+    return currentTier ? currentTier.price : null;
+  };
+
+  const currentPrice = getCurrentPrice();
+  const totalPrice = currentPrice ? (currentPrice * quantity).toFixed(2) : null;
 
   // Image URL helper function
   const getImageUrl = (imagePath) => {
@@ -50,8 +71,19 @@ const ProductDetails = () => {
         console.log('Product data received:', productData);
         setProduct(productData);
         
-        // Set default quantity to product's MOQ
-        setQuantity(productData.moq || 1);
+        // Set default quantity to product's MOQ or first tier min quantity
+        const defaultQty = productData.moq || (productData.tieredPricing?.[0]?.minQty || 1);
+        setQuantity(defaultQty);
+        
+        // Pre-fill inquiry form with user data if available
+        if (isAuthenticated && user) {
+          setInquiryData(prev => ({
+            ...prev,
+            name: `${user.firstName} ${user.lastName}`,
+            email: user.email,
+            phone: user.phone
+          }));
+        }
         
       } catch (err) {
         console.error('Error fetching product:', err);
@@ -64,7 +96,7 @@ const ProductDetails = () => {
     if (id) {
       fetchProduct();
     }
-  }, [id]);
+  }, [id, isAuthenticated, user]);
 
   const handleInquirySubmit = async (e) => {
     e.preventDefault();
@@ -74,17 +106,38 @@ const ProductDetails = () => {
       return;
     }
 
-    console.log('Inquiry submitted:', inquiryData);
-    alert('Your inquiry has been sent successfully! The supplier will contact you soon.');
-    setIsInquiryModalOpen(false);
-    setInquiryData({
-      name: '',
-      email: '',
-      company: '',
-      phone: '',
-      message: '',
-      quantity: quantity
-    });
+    try {
+      const response = await fetch('http://localhost:5000/api/inquiries', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          productId: id,
+          productName: product.name,
+          ...inquiryData,
+          quantity: quantity
+        })
+      });
+
+      if (response.ok) {
+        alert('Your inquiry has been sent successfully! The supplier will contact you soon.');
+        setIsInquiryModalOpen(false);
+        setInquiryData({
+          name: '',
+          email: '',
+          company: '',
+          phone: '',
+          message: '',
+          quantity: quantity
+        });
+      } else {
+        throw new Error('Failed to send inquiry');
+      }
+    } catch (err) {
+      console.error('Error sending inquiry:', err);
+      alert('Failed to send inquiry. Please try again.');
+    }
   };
 
   const handleAddToCart = () => {
@@ -92,16 +145,55 @@ const ProductDetails = () => {
       navigate('/login', { state: { from: `/product/${id}` } });
       return;
     }
-    alert('Product added to cart!');
+
+    if (product && currentPrice) {
+      addToCart({
+        ...product,
+        quantity,
+        unitPrice: currentPrice,
+        totalPrice: currentPrice * quantity
+      });
+      alert('Product added to cart!');
+    } else {
+      alert('Please select a valid quantity to add to cart.');
+    }
   };
 
-  const handleSaveProduct = () => {
+  const handleAddToWishlist = () => {
     if (!isAuthenticated) {
       navigate('/login', { state: { from: `/product/${id}` } });
       return;
     }
-    alert('Product saved to favorites!');
+
+    if (product) {
+      addToWishlist(product);
+      if (!isInWishlist) {
+        alert('Product added to wishlist!');
+      } else {
+        alert('Product removed from wishlist!');
+      }
+    }
   };
+
+  // Mock images for gallery
+  const productImages = [
+    getImageUrl(product?.image),
+    getImageUrl(product?.image),
+    getImageUrl(product?.image),
+    getImageUrl(product?.image)
+  ];
+
+  // Specification fields
+  const specifications = [
+    { label: 'Material', value: product?.specifications?.material },
+    { label: 'Size/Dimensions', value: product?.specifications?.size },
+    { label: 'Weight Capacity', value: product?.specifications?.weightCapacity },
+    { label: 'Lead Time', value: product?.specifications?.leadTime },
+    { label: 'Customization', value: product?.specifications?.customization },
+    { label: 'Color Options', value: product?.specifications?.colorOptions },
+    { label: 'Packaging', value: product?.specifications?.packaging },
+    { label: 'MOQ', value: `${product?.moq} units` }
+  ];
 
   if (loading) {
     return (
@@ -134,30 +226,8 @@ const ProductDetails = () => {
     );
   }
 
-  // Mock images for gallery
-  const productImages = [
-    getImageUrl(product.image),
-    getImageUrl(product.image),
-    getImageUrl(product.image),
-    getImageUrl(product.image)
-  ];
-
-  // Specification fields
-  const specifications = [
-    { label: 'Material', value: product.specifications?.material },
-    { label: 'Size/Dimensions', value: product.specifications?.size },
-    { label: 'Weight Capacity', value: product.specifications?.weightCapacity },
-    { label: 'Lead Time', value: product.specifications?.leadTime },
-    { label: 'Customization', value: product.specifications?.customization },
-    { label: 'Color Options', value: product.specifications?.colorOptions },
-    { label: 'Packaging', value: product.specifications?.packaging },
-    { label: 'MOQ', value: `${product.moq} units` }
-  ];
-
   return (
     <div className="product-details">
-
-
       {/* Main Product Section */}
       <section className="product-main">
         <div className="container">
@@ -209,10 +279,41 @@ const ProductDetails = () => {
                 </div>
               </div>
 
+              {/* Updated Price Section */}
               <div className="price-section">
-                <div className="price">{product.priceRange}</div>
-                <div className="price-note">Price varies based on quantity</div>
+                {currentPrice ? (
+                  <>
+                    <div className="current-price">${currentPrice.toFixed(2)} / unit</div>
+                    <div className="total-price">Total: ${totalPrice}</div>
+                    <div className="price-note">Price varies based on quantity</div>
+                  </>
+                ) : (
+                  <div className="price-note">Contact for pricing</div>
+                )}
               </div>
+
+              {/* Tiered Pricing Table */}
+              {product.tieredPricing && product.tieredPricing.length > 0 && (
+                <div className="tiered-pricing">
+                  <h4>Quantity Pricing</h4>
+                  <div className="pricing-table">
+                    {product.tieredPricing
+                      .sort((a, b) => a.minQty - b.minQty)
+                      .map((tier, index) => (
+                        <div 
+                          key={index} 
+                          className={`pricing-tier ${quantity >= tier.minQty && (tier.maxQty === 0 || quantity <= tier.maxQty) ? 'active' : ''}`}
+                        >
+                          <div className="tier-range">
+                            {tier.minQty} - {tier.maxQty === 0 ? 'Above' : tier.maxQty} units
+                          </div>
+                          <div className="tier-price">${tier.price.toFixed(2)}/unit</div>
+                        </div>
+                      ))
+                    }
+                  </div>
+                </div>
+              )}
 
               <div className="specs-preview">
                 <h3>Key Specifications</h3>
@@ -234,11 +335,11 @@ const ProductDetails = () => {
                   <input
                     type="number"
                     id="quantity"
-                    min={product.moq}
+                    min={product.moq || 1}
                     value={quantity}
-                    onChange={(e) => setQuantity(parseInt(e.target.value) || product.moq)}
+                    onChange={(e) => setQuantity(Math.max(product.moq || 1, parseInt(e.target.value) || product.moq || 1))}
                   />
-                  <span className="moq-note">Minimum: {product.moq} units</span>
+                  <span className="moq-note">Minimum: {product.moq || 1} units</span>
                 </div>
               </div>
 
@@ -258,11 +359,11 @@ const ProductDetails = () => {
                   Add to Cart
                 </button>
                 <button 
-                  className="btn btn-outline"
-                  onClick={handleSaveProduct}
+                  className={`btn btn-outline ${isInWishlist ? 'in-wishlist' : ''}`}
+                  onClick={handleAddToWishlist}
                 >
-                  <span>❤️</span>
-                  Save
+                  <span>{isInWishlist ? '❤️' : '🤍'}</span>
+                  {isInWishlist ? 'Saved' : 'Save'}
                 </button>
               </div>
 
