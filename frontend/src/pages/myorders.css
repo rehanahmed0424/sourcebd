@@ -311,3 +311,223 @@
     align-self: flex-end;
   }
 }
+
+
+.estimated-delivery {
+  color: #2d4d31;
+  font-weight: 500;
+  margin: 0.25rem 0 0 0;
+  font-size: 0.9rem;
+}
+
+.delivery-progress {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.progress-bar {
+  height: 6px;
+  background: #e9ecef;
+  border-radius: 3px;
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #2d4d31;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.progress-labels {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.progress-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  flex: 1;
+}
+
+.step-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #e9ecef;
+  margin-bottom: 0.5rem;
+  position: relative;
+}
+
+.step-dot.ordered,
+.step-dot.confirmed,
+.step-dot.shipped,
+.step-dot.delivered {
+  background: #2d4d31;
+}
+
+.step-label {
+  font-size: 0.75rem;
+  color: #666;
+  margin-bottom: 0.25rem;
+}
+
+.step-date {
+  font-size: 0.7rem;
+  color: #999;
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal {
+  background: white;
+  border-radius: 12px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: #2d4d31;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.order-details {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.detail-section h4 {
+  margin: 0 0 1rem 0;
+  color: #2d4d31;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f1f3f4;
+}
+
+.detail-item:last-child {
+  border-bottom: none;
+}
+
+.timeline {
+  position: relative;
+  padding-left: 2rem;
+}
+
+.timeline-step {
+  position: relative;
+  padding-bottom: 1.5rem;
+}
+
+.timeline-step:last-child {
+  padding-bottom: 0;
+}
+
+.timeline-dot {
+  position: absolute;
+  left: -2rem;
+  top: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #2d4d31;
+}
+
+.timeline-step:not(:last-child)::before {
+  content: '';
+  position: absolute;
+  left: -1.7rem;
+  top: 12px;
+  bottom: 0;
+  width: 2px;
+  background: #e9ecef;
+}
+
+.timeline-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.timeline-content strong {
+  color: #333;
+  font-size: 0.9rem;
+}
+
+.timeline-content span {
+  color: #666;
+  font-size: 0.8rem;
+}
+
+.order-summary {
+  border-top: 1px solid #e9ecef;
+  padding-top: 1rem;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+}
+
+.summary-row.total {
+  border-top: 1px solid #e9ecef;
+  font-weight: 600;
+  color: #2d4d31;
+}
+
+/* Add new status badge styles */
+.status-badge.confirmed {
+  background: #cce7ff;
+  color: #004085;
+}
+
+.shipping-address {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 6px;
+  margin-top: 0.5rem;
+}
+
+.shipping-address p {
+  margin: 0.25rem 0;
+  color: #555;
+}

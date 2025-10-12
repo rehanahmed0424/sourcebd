@@ -4,75 +4,61 @@ import { useAuth } from '../context/AuthContext';
 import './myorders.css';
 
 const MyOrders = () => {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, getAuthHeader } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
-
-  // Mock data for orders
-  const mockOrders = [
-    {
-      id: 'ORD-001',
-      date: '2024-01-15',
-      items: [
-        { name: 'Eco-Friendly Jute Bags', quantity: 500, price: 3.50 },
-        { name: 'Organic Cotton Tote Bags', quantity: 300, price: 4.25 }
-      ],
-      total: 3025.00,
-      status: 'delivered',
-      supplier: 'Dhaka Jute Mills Ltd.',
-      trackingNumber: 'TRK789456123'
-    },
-    {
-      id: 'ORD-002',
-      date: '2024-01-12',
-      items: [
-        { name: 'Handmade Ceramic Mugs', quantity: 1000, price: 2.75 }
-      ],
-      total: 2750.00,
-      status: 'shipped',
-      supplier: 'Bangladesh Ceramics Co.',
-      trackingNumber: 'TRK456123789'
-    },
-    {
-      id: 'ORD-003',
-      date: '2024-01-08',
-      items: [
-        { name: 'Bamboo Cutting Boards', quantity: 200, price: 8.99 },
-        { name: 'Wooden Kitchen Utensils', quantity: 500, price: 3.25 }
-      ],
-      total: 3555.00,
-      status: 'processing',
-      supplier: 'Eco Home Products'
-    },
-    {
-      id: 'ORD-004',
-      date: '2024-01-03',
-      items: [
-        { name: 'Silk Scarves', quantity: 150, price: 12.50 }
-      ],
-      total: 1875.00,
-      status: 'cancelled',
-      supplier: 'Dhaka Silk House'
-    }
-  ];
+  const [selectedOrder, setSelectedOrder] = useState(null);
 
   useEffect(() => {
-    // Simulate API call
-    const fetchOrders = async () => {
-      setLoading(true);
-      try {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setOrders(mockOrders);
-      } catch (error) {
-        console.error('Failed to fetch orders:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchOrders();
   }, []);
+
+  const fetchOrders = async () => {
+    if (!isAuthenticated) return;
+    
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/orders', {
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeader()
+        }
+      });
+
+      if (response.ok) {
+        const ordersData = await response.json();
+        setOrders(ordersData);
+      } else {
+        console.error('Failed to fetch orders');
+      }
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchOrderDetails = async (orderId) => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/orders/${orderId}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeader()
+        }
+      });
+
+      if (response.ok) {
+        const orderDetails = await response.json();
+        setSelectedOrder(orderDetails);
+      } else {
+        alert('Failed to fetch order details');
+      }
+    } catch (error) {
+      console.error('Error fetching order details:', error);
+      alert('Error fetching order details');
+    }
+  };
 
   const filteredOrders = filter === 'all' 
     ? orders 
@@ -81,6 +67,7 @@ const MyOrders = () => {
   const getStatusBadge = (status) => {
     const statusConfig = {
       processing: { label: 'Processing', class: 'processing' },
+      confirmed: { label: 'Confirmed', class: 'confirmed' },
       shipped: { label: 'Shipped', class: 'shipped' },
       delivered: { label: 'Delivered', class: 'delivered' },
       cancelled: { label: 'Cancelled', class: 'cancelled' }
@@ -96,6 +83,19 @@ const MyOrders = () => {
       month: 'short',
       day: 'numeric'
     });
+  };
+
+  const calculateDeliveryProgress = (timeline) => {
+    const statusOrder = ['ordered', 'confirmed', 'shipped', 'delivered'];
+    const currentStatus = timeline[timeline.length - 1]?.status || 'ordered';
+    const currentIndex = statusOrder.indexOf(currentStatus);
+    return currentIndex >= 0 ? (currentIndex + 1) / statusOrder.length * 100 : 0;
+  };
+
+  const getCurrentStatusIndex = (timeline) => {
+    const statusOrder = ['ordered', 'confirmed', 'shipped', 'delivered'];
+    const currentStatus = timeline[timeline.length - 1]?.status || 'ordered';
+    return statusOrder.indexOf(currentStatus);
   };
 
   if (!isAuthenticated) {
@@ -148,12 +148,6 @@ const MyOrders = () => {
             >
               Delivered
             </button>
-            <button 
-              className={`filter-btn ${filter === 'cancelled' ? 'active' : ''}`}
-              onClick={() => setFilter('cancelled')}
-            >
-              Cancelled
-            </button>
           </div>
           
           <div className="orders-stats">
@@ -184,12 +178,19 @@ const MyOrders = () => {
         ) : (
           <div className="orders-list">
             {filteredOrders.map(order => (
-              <div key={order.id} className="order-card">
+              <div key={order._id} className="order-card">
                 <div className="order-header">
                   <div className="order-info">
-                    <h3>Order #{order.id}</h3>
-                    <p className="order-date">Placed on {formatDate(order.date)}</p>
-                    <p className="supplier">Supplier: {order.supplier}</p>
+                    <h3>Order #{order.orderId}</h3>
+                    <p className="order-date">Placed on {formatDate(order.createdAt)}</p>
+                    {order.shippingAddress && (
+                      <p className="supplier">Ship to: {order.shippingAddress.city}, {order.shippingAddress.country}</p>
+                    )}
+                    {order.estimatedDelivery && (
+                      <p className="estimated-delivery">
+                        Estimated Delivery: {formatDate(order.estimatedDelivery)}
+                      </p>
+                    )}
                   </div>
                   <div className="order-meta">
                     {getStatusBadge(order.status)}
@@ -205,32 +206,53 @@ const MyOrders = () => {
                         <span className="item-quantity">Qty: {item.quantity}</span>
                       </div>
                       <div className="item-price">
-                        ${(item.quantity * item.price).toFixed(2)}
+                        ${item.subtotal.toFixed(2)}
                       </div>
                     </div>
                   ))}
                 </div>
 
+                {/* Delivery Progress */}
+                {order.timeline && order.timeline.length > 0 && (
+                  <div className="delivery-progress">
+                    <div className="progress-bar">
+                      <div 
+                        className="progress-fill"
+                        style={{ width: `${calculateDeliveryProgress(order.timeline)}%` }}
+                      ></div>
+                    </div>
+                    <div className="progress-labels">
+                      {['ordered', 'confirmed', 'shipped', 'delivered'].map((status, index) => {
+                        const timelineStep = order.timeline.find(step => step.status === status);
+                        const isCompleted = index <= getCurrentStatusIndex(order.timeline);
+                        
+                        return (
+                          <div key={status} className="progress-step">
+                            <div className={`step-dot ${isCompleted ? status : ''}`}></div>
+                            <span className="step-label">
+                              {status === 'ordered' && 'Ordered'}
+                              {status === 'confirmed' && 'Confirmed'}
+                              {status === 'shipped' && 'Shipped'}
+                              {status === 'delivered' && 'Delivered'}
+                            </span>
+                            {timelineStep && (
+                              <span className="step-date">{formatDate(timelineStep.date)}</span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <div className="order-footer">
                   <div className="order-actions">
-                    <button className="btn btn-outline btn-small">
+                    <button 
+                      className="btn btn-outline btn-small"
+                      onClick={() => fetchOrderDetails(order.orderId)}
+                    >
                       View Details
                     </button>
-                    {order.status === 'shipped' && order.trackingNumber && (
-                      <button className="btn btn-outline btn-small">
-                        Track Package
-                      </button>
-                    )}
-                    {order.status === 'delivered' && (
-                      <button className="btn btn-outline btn-small">
-                        Download Invoice
-                      </button>
-                    )}
-                    {(order.status === 'processing' || order.status === 'shipped') && (
-                      <button className="btn btn-outline btn-small">
-                        Contact Supplier
-                      </button>
-                    )}
                   </div>
                   
                   {order.trackingNumber && (
@@ -241,6 +263,92 @@ const MyOrders = () => {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+
+        {/* Order Details Modal */}
+        {selectedOrder && (
+          <div className="modal-overlay">
+            <div className="modal">
+              <div className="modal-header">
+                <h3>Order Details - #{selectedOrder.orderId}</h3>
+                <button 
+                  className="close-btn"
+                  onClick={() => setSelectedOrder(null)}
+                >
+                  ×
+                </button>
+              </div>
+              <div className="modal-body">
+                <div className="order-details">
+                  <div className="detail-section">
+                    <h4>Items</h4>
+                    {selectedOrder.items.map((item, index) => (
+                      <div key={index} className="detail-item">
+                        <span>{item.name}</span>
+                        <span>Qty: {item.quantity}</span>
+                        <span>${item.price} each</span>
+                        <span>${item.subtotal.toFixed(2)}</span>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  <div className="detail-section">
+                    <h4>Delivery Timeline</h4>
+                    <div className="timeline">
+                      {selectedOrder.timeline && selectedOrder.timeline.map((step, index) => (
+                        <div key={index} className="timeline-step">
+                          <div className="timeline-dot"></div>
+                          <div className="timeline-content">
+                            <strong>{step.description}</strong>
+                            <span>{formatDate(step.date)}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="detail-section">
+                    <h4>Shipping Information</h4>
+                    {selectedOrder.shippingAddress && (
+                      <div className="shipping-address">
+                        <p><strong>Name:</strong> {selectedOrder.shippingAddress.firstName} {selectedOrder.shippingAddress.lastName}</p>
+                        <p><strong>Address:</strong> {selectedOrder.shippingAddress.address}</p>
+                        <p><strong>City:</strong> {selectedOrder.shippingAddress.city}</p>
+                        <p><strong>State:</strong> {selectedOrder.shippingAddress.state}</p>
+                        <p><strong>ZIP:</strong> {selectedOrder.shippingAddress.zipCode}</p>
+                        <p><strong>Country:</strong> {selectedOrder.shippingAddress.country}</p>
+                        <p><strong>Phone:</strong> {selectedOrder.shippingAddress.phone}</p>
+                      </div>
+                    )}
+                    {selectedOrder.trackingNumber && (
+                      <p><strong>Tracking Number:</strong> {selectedOrder.trackingNumber}</p>
+                    )}
+                    {selectedOrder.estimatedDelivery && (
+                      <p><strong>Estimated Delivery:</strong> {formatDate(selectedOrder.estimatedDelivery)}</p>
+                    )}
+                  </div>
+
+                  <div className="detail-section">
+                    <h4>Order Summary</h4>
+                    <div className="order-summary">
+                      <div className="summary-row">
+                        <span>Subtotal:</span>
+                        <span>${selectedOrder.total.toFixed(2)}</span>
+                      </div>
+                      <div className="summary-row">
+                        <span>Shipping:</span>
+                        <span>$0.00</span>
+                      </div>
+                      <div className="summary-row total">
+                        <span>Total:</span>
+                        <span>${selectedOrder.total.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>

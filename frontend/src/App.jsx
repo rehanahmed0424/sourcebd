@@ -20,6 +20,7 @@ import Wishlist from './pages/Wishlist';
 import RFQ from './pages/rfq';
 import MyProfile from './pages/myprofile';
 import MyOrders from './pages/myorders';
+import Checkout from './pages/checkout';
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component {
@@ -89,7 +90,7 @@ const App = () => {
               <Route path="/category/:categoryName" element={<MainLayout><Category /></MainLayout>} />
               <Route path="/search" element={<MainLayout><SearchResults /></MainLayout>} />
               <Route path="/product/:id" element={<MainLayout><ProductDetails /></MainLayout>} />
-              {/* New Routes Added */}
+              <Route path="/checkout" element={<MainLayout><Checkout /></MainLayout>} />
               <Route path="/rfq" element={<MainLayout><RFQ /></MainLayout>} />
               <Route path="/my-profile" element={<MainLayout><MyProfile /></MainLayout>} />
               <Route path="/my-orders" element={<MainLayout><MyOrders /></MainLayout>} />

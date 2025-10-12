@@ -77,7 +77,7 @@ mongoose.connect('mongodb+srv://sourcebduser:sourcebdpass@cluster0.uzynynf.mongo
     console.log('⚠️  Continuing with fallback data...');
   });
 
-// Updated User Model with additional fields
+// Updated User Model with profile picture
 const userSchema = new mongoose.Schema({
   firstName: { type: String, required: true },
   lastName: { type: String, required: true },
@@ -89,6 +89,7 @@ const userSchema = new mongoose.Schema({
   city: { type: String, default: '' },
   state: { type: String, default: '' },
   zipCode: { type: String, default: '' },
+  profilePicture: { type: String, default: '' },
   password: { type: String, required: true },
   userType: { type: String, enum: ['buyer', 'supplier'], default: 'buyer' },
   createdAt: { type: Date, default: Date.now }
@@ -190,6 +191,46 @@ const wishlistSchema = new mongoose.Schema({
   updatedAt: { type: Date, default: Date.now }
 });
 const Wishlist = mongoose.model('Wishlist', wishlistSchema);
+
+// Order Model
+const orderSchema = new mongoose.Schema({
+  orderId: { type: String, required: true, unique: true },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  items: [{
+    name: { type: String, required: true },
+    quantity: { type: Number, required: true },
+    price: { type: Number, required: true },
+    subtotal: { type: Number, required: true }
+  }],
+  total: { type: Number, required: true },
+  status: { 
+    type: String, 
+    enum: ['processing', 'confirmed', 'shipped', 'delivered', 'cancelled'], 
+    default: 'processing' 
+  },
+  shippingAddress: {
+    firstName: String,
+    lastName: String,
+    email: String,
+    phone: String,
+    address: String,
+    city: String,
+    state: String,
+    zipCode: String,
+    country: String
+  },
+  supplier: String,
+  trackingNumber: String,
+  estimatedDelivery: Date,
+  timeline: [{
+    status: String,
+    date: Date,
+    description: String
+  }],
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+});
+const Order = mongoose.model('Order', orderSchema);
 
 // JWT Secret
 const JWT_SECRET = process.env.JWT_SECRET || 'sourcebd-jwt-secret-2024';
@@ -413,7 +454,7 @@ app.post('/api/login', async (req, res) => {
 });
 
 // ===== USER PROFILE ROUTES =====
-app.put('/api/user/profile', async (req, res) => {
+app.put('/api/user/profile', upload.single('profilePicture'), async (req, res) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '');
     if (!token) {
@@ -435,6 +476,11 @@ app.put('/api/user/profile', async (req, res) => {
       }
     });
 
+    // Handle profile picture upload
+    if (req.file) {
+      user.profilePicture = `/uploads/${req.file.filename}`;
+    }
+
     await user.save();
 
     res.json({
@@ -449,6 +495,7 @@ app.put('/api/user/profile', async (req, res) => {
       city: user.city,
       state: user.state,
       zipCode: user.zipCode,
+      profilePicture: user.profilePicture,
       userType: user.userType,
       createdAt: user.createdAt
     });
@@ -488,6 +535,7 @@ app.get('/api/user/profile', async (req, res) => {
       city: user.city,
       state: user.state,
       zipCode: user.zipCode,
+      profilePicture: user.profilePicture,
       userType: user.userType,
       createdAt: user.createdAt
     });
@@ -542,6 +590,91 @@ app.post('/api/user/change-password', async (req, res) => {
       return res.status(401).json({ error: 'Invalid token' });
     }
     res.status(500).json({ error: 'Failed to change password' });
+  }
+});
+
+// ===== USER STATS ROUTES =====
+app.get('/api/orders/count', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.userId);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const orderCount = await Order.countDocuments({ userId: user._id });
+    
+    res.json({ count: orderCount });
+
+  } catch (error) {
+    console.error('Orders count fetch error:', error);
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+    res.status(500).json({ error: 'Failed to fetch orders count' });
+  }
+});
+
+app.get('/api/wishlist/count', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.userId);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const wishlist = await Wishlist.findOne({ userId: user._id });
+    const wishlistCount = wishlist ? wishlist.products.length : 0;
+    
+    res.json({ count: wishlistCount });
+
+  } catch (error) {
+    console.error('Wishlist count fetch error:', error);
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+    res.status(500).json({ error: 'Failed to fetch wishlist count' });
+  }
+});
+
+app.get('/api/rfqs/count', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.userId);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // For now, return 0 as placeholder
+    // When you implement RFQ functionality, replace this with actual count
+    const rfqCount = await Inquiry.countDocuments({ email: user.email });
+    
+    res.json({ count: rfqCount });
+
+  } catch (error) {
+    console.error('RFQs count fetch error:', error);
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+    res.status(500).json({ error: 'Failed to fetch RFQs count' });
   }
 });
 
@@ -942,6 +1075,190 @@ app.delete('/api/products/:id', async (req, res) => {
   }
 });
 
+// ===== ORDER ROUTES =====
+app.post('/api/orders', async (req, res) => {
+  try {
+    console.log('=== ORDER CREATION REQUEST ===');
+    console.log('Headers:', req.headers);
+    console.log('Body:', req.body);
+
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      console.log('No token provided');
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+      console.log('Decoded token:', decoded);
+    } catch (jwtError) {
+      console.log('JWT verification failed:', jwtError);
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    const user = await User.findById(decoded.userId);
+    if (!user) {
+      console.log('User not found for ID:', decoded.userId);
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const { items, total, shippingAddress } = req.body;
+    console.log('Parsed data - items:', items, 'total:', total, 'shippingAddress:', shippingAddress);
+
+    if (!items || !items.length) {
+      console.log('No items in order');
+      return res.status(400).json({ error: 'Order must contain at least one item' });
+    }
+
+    if (!total || total <= 0) {
+      console.log('Invalid total:', total);
+      return res.status(400).json({ error: 'Valid total amount is required' });
+    }
+
+    if (!shippingAddress || !shippingAddress.firstName || !shippingAddress.address) {
+      console.log('Invalid shipping address:', shippingAddress);
+      return res.status(400).json({ error: 'Complete shipping address is required' });
+    }
+
+    // Generate unique order ID
+    const orderId = `ORD-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+
+    // Calculate estimated delivery (7 days from now)
+    const estimatedDelivery = new Date();
+    estimatedDelivery.setDate(estimatedDelivery.getDate() + 7);
+
+    // Find supplier from the first item (in real app, this would be more complex)
+    const supplier = items[0]?.supplier || 'SourceBd Supplier';
+
+    const newOrder = new Order({
+      orderId,
+      userId: user._id,
+      items: items.map(item => ({
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        subtotal: item.subtotal || (item.price * item.quantity)
+      })),
+      total: parseFloat(total),
+      shippingAddress,
+      supplier,
+      status: 'processing',
+      estimatedDelivery,
+      timeline: [
+        {
+          status: 'ordered',
+          date: new Date(),
+          description: 'Order placed successfully'
+        }
+      ]
+    });
+
+    console.log('Saving order:', newOrder);
+    await newOrder.save();
+
+    // Populate user data for response
+    await newOrder.populate('userId', 'firstName lastName email');
+
+    console.log('✅ Order created successfully:', orderId);
+
+    res.status(201).json({
+      message: 'Order created successfully',
+      order: newOrder
+    });
+
+  } catch (error) {
+    console.error('❌ Order creation error:', error);
+    console.error('Error stack:', error.stack);
+    
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+    
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({ error: 'Invalid order data: ' + error.message });
+    }
+    
+    res.status(500).json({ error: 'Failed to create order: ' + error.message });
+  }
+});
+
+app.get('/api/orders', async (req, res) => {
+  try {
+    console.log('=== FETCHING ORDERS ===');
+    
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch (jwtError) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    const user = await User.findById(decoded.userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const orders = await Order.find({ userId: user._id })
+      .sort({ createdAt: -1 });
+
+    console.log(`Found ${orders.length} orders for user ${user.email}`);
+
+    res.json(orders);
+
+  } catch (error) {
+    console.error('Orders fetch error:', error);
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+    res.status(500).json({ error: 'Failed to fetch orders' });
+  }
+});
+
+app.get('/api/orders/:orderId', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(token, JWT_SECRET);
+    } catch (jwtError) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    const user = await User.findById(decoded.userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const order = await Order.findOne({ 
+      orderId: req.params.orderId,
+      userId: user._id 
+    });
+
+    if (!order) {
+      return res.status(404).json({ error: 'Order not found' });
+    }
+
+    res.json(order);
+
+  } catch (error) {
+    console.error('Order fetch error:', error);
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+    res.status(500).json({ error: 'Failed to fetch order' });
+  }
+});
+
 // ===== INQUIRY ROUTES =====
 app.post('/api/inquiries', async (req, res) => {
   try {
@@ -976,25 +1293,50 @@ app.post('/api/inquiries', async (req, res) => {
 });
 
 // ===== CART ROUTES =====
-app.get('/api/cart/:userId', async (req, res) => {
+app.get('/api/cart', async (req, res) => {
   try {
-    const cart = await Cart.findOne({ userId: req.params.userId })
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.userId);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const cart = await Cart.findOne({ userId: user._id })
       .populate('items.productId');
     res.json(cart || { items: [] });
+
   } catch (error) {
     console.error('Cart fetch error:', error);
     res.status(500).json({ error: 'Failed to fetch cart' });
   }
 });
 
-app.post('/api/cart/:userId', async (req, res) => {
+app.post('/api/cart', async (req, res) => {
   try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.userId);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
     const { productId, quantity, unitPrice } = req.body;
 
-    let cart = await Cart.findOne({ userId: req.params.userId });
+    let cart = await Cart.findOne({ userId: user._id });
 
     if (!cart) {
-      cart = new Cart({ userId: req.params.userId, items: [] });
+      cart = new Cart({ userId: user._id, items: [] });
     }
 
     const existingItemIndex = cart.items.findIndex(
@@ -1027,25 +1369,51 @@ app.post('/api/cart/:userId', async (req, res) => {
 });
 
 // ===== WISHLIST ROUTES =====
-app.get('/api/wishlist/:userId', async (req, res) => {
+app.get('/api/wishlist', async (req, res) => {
   try {
-    const wishlist = await Wishlist.findOne({ userId: req.params.userId })
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.userId);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const wishlist = await Wishlist.findOne({ userId: user._id })
       .populate('products.productId');
+    
     res.json(wishlist || { products: [] });
+
   } catch (error) {
     console.error('Wishlist fetch error:', error);
     res.status(500).json({ error: 'Failed to fetch wishlist' });
   }
 });
 
-app.post('/api/wishlist/:userId', async (req, res) => {
+app.post('/api/wishlist', async (req, res) => {
   try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.userId);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
     const { productId } = req.body;
 
-    let wishlist = await Wishlist.findOne({ userId: req.params.userId });
+    let wishlist = await Wishlist.findOne({ userId: user._id });
 
     if (!wishlist) {
-      wishlist = new Wishlist({ userId: req.params.userId, products: [] });
+      wishlist = new Wishlist({ userId: user._id, products: [] });
     }
 
     const existingProductIndex = wishlist.products.findIndex(
@@ -1072,6 +1440,94 @@ app.post('/api/wishlist/:userId', async (req, res) => {
   } catch (error) {
     console.error('Wishlist update error:', error);
     res.status(500).json({ error: 'Failed to update wishlist' });
+  }
+});
+
+// ===== CART ROUTES =====
+app.get('/api/cart', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.userId);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const cart = await Cart.findOne({ userId: user._id })
+      .populate('items.productId');
+    
+    res.json(cart || { items: [] });
+
+  } catch (error) {
+    console.error('Cart fetch error:', error);
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+    res.status(500).json({ error: 'Failed to fetch cart' });
+  }
+});
+
+app.post('/api/cart', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.userId);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const { productId, quantity, unitPrice } = req.body;
+
+    let cart = await Cart.findOne({ userId: user._id });
+
+    if (!cart) {
+      cart = new Cart({ userId: user._id, items: [] });
+    }
+
+    const existingItemIndex = cart.items.findIndex(
+      item => item.productId.toString() === productId
+    );
+
+    if (existingItemIndex > -1) {
+      if (quantity <= 0) {
+        // Remove item if quantity is 0 or less
+        cart.items.splice(existingItemIndex, 1);
+      } else {
+        // Update quantity
+        cart.items[existingItemIndex].quantity = quantity;
+        cart.items[existingItemIndex].unitPrice = unitPrice;
+      }
+    } else if (quantity > 0) {
+      // Add new item
+      cart.items.push({
+        productId,
+        quantity,
+        unitPrice
+      });
+    }
+
+    cart.updatedAt = new Date();
+    await cart.save();
+    await cart.populate('items.productId');
+
+    res.json({ 
+      message: 'Cart updated successfully',
+      cart 
+    });
+
+  } catch (error) {
+    console.error('Cart update error:', error);
+    res.status(500).json({ error: 'Failed to update cart' });
   }
 });
 

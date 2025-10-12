@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useCart } from '../context/CartContext';
 
 const Header = () => {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [cartCount] = useState(3);
   const [searchQuery, setSearchQuery] = useState('');
   const { user, logout } = useAuth();
+  const { cartCount } = useCart();
   const navigate = useNavigate();
 
   // Close dropdown when clicking outside

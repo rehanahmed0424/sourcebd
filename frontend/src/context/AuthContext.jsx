@@ -103,35 +103,38 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Add updateProfile function
-  const updateProfile = async (profileData) => {
-    try {
-      const response = await fetch('http://localhost:5000/api/user/profile', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeader()
-        },
-        body: JSON.stringify(profileData)
-      });
 
-      if (response.ok) {
-        const updatedUser = await response.json();
-        
-        // Update both state and localStorage
-        const newUserData = { ...user, ...updatedUser };
-        setUser(newUserData);
-        localStorage.setItem('sourcebd_user', JSON.stringify(newUserData));
-        
-        return updatedUser;
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to update profile');
-      }
-    } catch (error) {
-      console.error('Profile update error:', error);
-      throw error;
+const updateProfile = async (profileData) => {
+  try {
+    const token = localStorage.getItem('sourcebd_token');
+    
+    const response = await fetch('http://localhost:5000/api/user/profile', {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`
+        // Don't set Content-Type for FormData, let the browser set it
+      },
+      body: profileData instanceof FormData ? profileData : JSON.stringify(profileData)
+    });
+
+    if (response.ok) {
+      const updatedUser = await response.json();
+      
+      // Update both state and localStorage
+      const newUserData = { ...user, ...updatedUser };
+      setUser(newUserData);
+      localStorage.setItem('sourcebd_user', JSON.stringify(newUserData));
+      
+      return updatedUser;
+    } else {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to update profile');
     }
-  };
+  } catch (error) {
+    console.error('Profile update error:', error);
+    throw error;
+  }
+};
 
   // Add refreshUser function to sync with server
   const refreshUser = async () => {

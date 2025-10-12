@@ -327,3 +327,94 @@ input:checked + .slider:before {
     align-items: center;
   }
 }
+
+
+.avatar-image {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid #2d4d31;
+}
+
+.avatar-upload {
+  margin-top: 1rem;
+}
+
+.upload-btn {
+  background: #2d4d31;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  display: inline-block;
+  transition: background 0.3s;
+}
+
+.upload-btn:hover {
+  background: #1f3a22;
+}
+
+.disabled-field {
+  background: #f8f9fa;
+  color: #666;
+  cursor: not-allowed;
+}
+
+/* Add these styles to myprofile.css */
+
+.stats-details {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.stat-detail {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  background: white;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+}
+
+.stat-detail .stat-label {
+  font-weight: 500;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.stat-detail .stat-value {
+  font-weight: 600;
+  color: #2d4d31;
+  font-size: 1rem;
+}
+
+/* Responsive design for stats */
+@media (max-width: 768px) {
+  .stats-details {
+    grid-template-columns: 1fr;
+  }
+  
+  .profile-stats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .profile-stats {
+    grid-template-columns: 1fr;
+  }
+  
+  .stat-item {
+    text-align: left;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+}

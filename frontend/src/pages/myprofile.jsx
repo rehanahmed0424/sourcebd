@@ -3,9 +3,16 @@ import { useAuth } from '../context/AuthContext';
 import './myprofile.css';
 
 const MyProfile = () => {
-  const { user, isAuthenticated, updateProfile } = useAuth();
+  const { user, isAuthenticated, updateProfile, getAuthHeader } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [profileImage, setProfileImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState('');
+  const [stats, setStats] = useState({
+    orders: 0,
+    rfqs: 0,
+    wishlist: 0
+  });
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -18,6 +25,47 @@ const MyProfile = () => {
     state: '',
     zipCode: ''
   });
+
+  // Fetch user statistics
+  const fetchUserStats = async () => {
+    if (!isAuthenticated) return;
+
+    try {
+      // Fetch orders count
+      const ordersResponse = await fetch('http://localhost:5000/api/orders', {
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeader()
+        }
+      });
+
+      if (ordersResponse.ok) {
+        const orders = await ordersResponse.json();
+        setStats(prev => ({ ...prev, orders: orders.length }));
+      }
+
+      // Fetch wishlist count (if you have a wishlist API)
+      const wishlistResponse = await fetch('http://localhost:5000/api/wishlist', {
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeader()
+        }
+      });
+
+      if (wishlistResponse.ok) {
+        const wishlistData = await wishlistResponse.json();
+        const wishlistCount = wishlistData.products?.length || 0;
+        setStats(prev => ({ ...prev, wishlist: wishlistCount }));
+      }
+
+      // For RFQs, we'll use a placeholder since we don't have an RFQ API yet
+      // You can replace this with actual RFQ API call when available
+      setStats(prev => ({ ...prev, rfqs: 0 }));
+
+    } catch (error) {
+      console.error('Error fetching user stats:', error);
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -33,12 +81,33 @@ const MyProfile = () => {
         state: user.state || '',
         zipCode: user.zipCode || ''
       });
+      if (user.profilePicture) {
+        setImagePreview(`http://localhost:5000${user.profilePicture}`);
+      }
     }
   }, [user]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchUserStats();
+    }
+  }, [isAuthenticated]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setProfileImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -46,14 +115,41 @@ const MyProfile = () => {
     setLoading(true);
 
     try {
-      await updateProfile(formData);
+      const submitData = new FormData();
+      
+      // Append form data
+      Object.keys(formData).forEach(key => {
+        submitData.append(key, formData[key]);
+      });
+      
+      // Append profile picture if changed
+      if (profileImage) {
+        submitData.append('profilePicture', profileImage);
+      }
+
+      await updateProfile(submitData);
       setIsEditing(false);
+      setProfileImage(null);
       alert('Profile updated successfully!');
     } catch (error) {
       alert('Failed to update profile. Please try again.');
     } finally {
       setLoading(false);
     }
+  };
+
+  const getInitials = (firstName, lastName) => {
+    return `${firstName?.charAt(0) || ''}${lastName?.charAt(0) || ''}`.toUpperCase();
+  };
+
+  const formatMemberSince = (createdAt) => {
+    if (!createdAt) return 'January 2024';
+    
+    const date = new Date(createdAt);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long'
+    });
   };
 
   if (!isAuthenticated) {
@@ -81,28 +177,48 @@ const MyProfile = () => {
           <div className="profile-sidebar">
             <div className="profile-card">
               <div className="profile-avatar">
-                <div className="avatar-placeholder">
-                  {user?.firstName?.charAt(0)}{user?.lastName?.charAt(0)}
-                </div>
+                {imagePreview ? (
+                  <img src={imagePreview} alt="Profile" className="avatar-image" />
+                ) : (
+                  <div className="avatar-placeholder">
+                    {getInitials(user?.firstName, user?.lastName)}
+                  </div>
+                )}
+                {isEditing && (
+                  <div className="avatar-upload">
+                    <label htmlFor="profile-picture" className="upload-btn">
+                      📷 Change Photo
+                    </label>
+                    <input
+                      id="profile-picture"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      style={{ display: 'none' }}
+                    />
+                  </div>
+                )}
               </div>
               <div className="profile-info">
                 <h3>{user?.firstName} {user?.lastName}</h3>
                 <p className="email">{user?.email}</p>
-                <p className="member-since">Member since January 2024</p>
+                <p className="member-since">
+                  Member since {formatMemberSince(user?.createdAt)}
+                </p>
               </div>
             </div>
 
             <div className="profile-stats">
               <div className="stat-item">
-                <div className="stat-number">12</div>
+                <div className="stat-number">{stats.orders}</div>
                 <div className="stat-label">Orders</div>
               </div>
               <div className="stat-item">
-                <div className="stat-number">5</div>
+                <div className="stat-number">{stats.rfqs}</div>
                 <div className="stat-label">RFQs</div>
               </div>
               <div className="stat-item">
-                <div className="stat-number">3</div>
+                <div className="stat-number">{stats.wishlist}</div>
                 <div className="stat-label">Wishlist</div>
               </div>
             </div>
@@ -123,7 +239,7 @@ const MyProfile = () => {
               <form onSubmit={handleSubmit}>
                 <div className="form-grid">
                   <div className="form-group">
-                    <label>First Name</label>
+                    <label>First Name *</label>
                     <input
                       type="text"
                       name="firstName"
@@ -135,7 +251,7 @@ const MyProfile = () => {
                   </div>
                   
                   <div className="form-group">
-                    <label>Last Name</label>
+                    <label>Last Name *</label>
                     <input
                       type="text"
                       name="lastName"
@@ -153,13 +269,13 @@ const MyProfile = () => {
                       name="email"
                       value={formData.email}
                       onChange={handleInputChange}
-                      disabled={!isEditing}
-                      required
+                      disabled={true}
+                      className="disabled-field"
                     />
                   </div>
                   
                   <div className="form-group">
-                    <label>Phone</label>
+                    <label>Phone *</label>
                     <input
                       type="tel"
                       name="phone"
@@ -263,40 +379,25 @@ const MyProfile = () => {
 
             <div className="profile-section">
               <div className="section-header">
-                <h2>Account Settings</h2>
+                <h2>Account Statistics</h2>
               </div>
               
-              <div className="settings-list">
-                <div className="setting-item">
-                  <div className="setting-info">
-                    <h4>Password</h4>
-                    <p>Last changed 3 months ago</p>
-                  </div>
-                  <button className="btn btn-outline">
-                    Change Password
-                  </button>
+              <div className="stats-details">
+                <div className="stat-detail">
+                  <span className="stat-label">Total Orders:</span>
+                  <span className="stat-value">{stats.orders}</span>
                 </div>
-                
-                <div className="setting-item">
-                  <div className="setting-info">
-                    <h4>Email Notifications</h4>
-                    <p>Receive updates about your orders and RFQs</p>
-                  </div>
-                  <label className="toggle-switch">
-                    <input type="checkbox" defaultChecked />
-                    <span className="slider"></span>
-                  </label>
+                <div className="stat-detail">
+                  <span className="stat-label">Pending RFQs:</span>
+                  <span className="stat-value">{stats.rfqs}</span>
                 </div>
-                
-                <div className="setting-item">
-                  <div className="setting-info">
-                    <h4>Marketing Communications</h4>
-                    <p>Receive promotional emails and updates</p>
-                  </div>
-                  <label className="toggle-switch">
-                    <input type="checkbox" />
-                    <span className="slider"></span>
-                  </label>
+                <div className="stat-detail">
+                  <span className="stat-label">Wishlist Items:</span>
+                  <span className="stat-value">{stats.wishlist}</span>
+                </div>
+                <div className="stat-detail">
+                  <span className="stat-label">Member Since:</span>
+                  <span className="stat-value">{formatMemberSince(user?.createdAt)}</span>
                 </div>
               </div>
             </div>

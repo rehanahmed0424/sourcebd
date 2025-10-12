@@ -160,7 +160,7 @@ const Cart = () => {
                     <Link to="/checkout" className="btn btn-primary btn-full">
                       Proceed to Checkout
                     </Link>
-                    <Link to="/products" className="btn btn-outline btn-full">
+                    <Link to="/" className="btn btn-outline btn-full">
                       Continue Shopping
                     </Link>
                   </div>
