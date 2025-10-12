@@ -77,13 +77,18 @@ mongoose.connect('mongodb+srv://sourcebduser:sourcebdpass@cluster0.uzynynf.mongo
     console.log('⚠️  Continuing with fallback data...');
   });
 
-// User Model
+// Updated User Model with additional fields
 const userSchema = new mongoose.Schema({
   firstName: { type: String, required: true },
   lastName: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   phone: { type: String, required: true },
+  company: { type: String, default: '' },
   country: { type: String, default: 'Bangladesh' },
+  address: { type: String, default: '' },
+  city: { type: String, default: '' },
+  state: { type: String, default: '' },
+  zipCode: { type: String, default: '' },
   password: { type: String, required: true },
   userType: { type: String, enum: ['buyer', 'supplier'], default: 'buyer' },
   createdAt: { type: Date, default: Date.now }
@@ -404,6 +409,139 @@ app.post('/api/login', async (req, res) => {
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// ===== USER PROFILE ROUTES =====
+app.put('/api/user/profile', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.userId).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Update allowed fields
+    const allowedUpdates = ['firstName', 'lastName', 'phone', 'company', 'country', 'address', 'city', 'state', 'zipCode'];
+    allowedUpdates.forEach(field => {
+      if (req.body[field] !== undefined) {
+        user[field] = req.body[field];
+      }
+    });
+
+    await user.save();
+
+    res.json({
+      id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      phone: user.phone,
+      company: user.company,
+      country: user.country,
+      address: user.address,
+      city: user.city,
+      state: user.state,
+      zipCode: user.zipCode,
+      userType: user.userType,
+      createdAt: user.createdAt
+    });
+
+  } catch (error) {
+    console.error('Profile update error:', error);
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+    res.status(500).json({ error: 'Failed to update profile' });
+  }
+});
+
+app.get('/api/user/profile', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.userId).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({
+      id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      phone: user.phone,
+      company: user.company,
+      country: user.country,
+      address: user.address,
+      city: user.city,
+      state: user.state,
+      zipCode: user.zipCode,
+      userType: user.userType,
+      createdAt: user.createdAt
+    });
+
+  } catch (error) {
+    console.error('Profile fetch error:', error);
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+    res.status(500).json({ error: 'Failed to fetch profile' });
+  }
+});
+
+app.post('/api/user/change-password', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    const user = await User.findById(decoded.userId);
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const { currentPassword, newPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Current password and new password are required' });
+    }
+
+    if (newPassword.length < 8) {
+      return res.status(400).json({ error: 'New password must be at least 8 characters long' });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ error: 'Current password is incorrect' });
+    }
+
+    const saltRounds = 10;
+    user.password = await bcrypt.hash(newPassword, saltRounds);
+    await user.save();
+
+    res.json({ success: true, message: 'Password updated successfully' });
+
+  } catch (error) {
+    console.error('Password change error:', error);
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+    res.status(500).json({ error: 'Failed to change password' });
   }
 });
 
@@ -987,7 +1125,7 @@ app.delete('/api/testimonials/:id', async (req, res) => {
   }
 });
 
-// ===== USER PROFILE ROUTES =====
+// ===== USER PROFILE ROUTES (Existing - Keep for backward compatibility) =====
 app.get('/api/user/:id', async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select('-password');

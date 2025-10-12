@@ -102,6 +102,84 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Add updateProfile function
+  const updateProfile = async (profileData) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/user/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeader()
+        },
+        body: JSON.stringify(profileData)
+      });
+
+      if (response.ok) {
+        const updatedUser = await response.json();
+        
+        // Update both state and localStorage
+        const newUserData = { ...user, ...updatedUser };
+        setUser(newUserData);
+        localStorage.setItem('sourcebd_user', JSON.stringify(newUserData));
+        
+        return updatedUser;
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update profile');
+      }
+    } catch (error) {
+      console.error('Profile update error:', error);
+      throw error;
+    }
+  };
+
+  // Add refreshUser function to sync with server
+  const refreshUser = async () => {
+    try {
+      const response = await fetch('http://localhost:5000/api/user/profile', {
+        headers: {
+          ...getAuthHeader()
+        }
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        setUser(userData);
+        localStorage.setItem('sourcebd_user', JSON.stringify(userData));
+        return userData;
+      }
+    } catch (error) {
+      console.error('Error refreshing user data:', error);
+    }
+  };
+
+  // Add changePassword function
+  const changePassword = async (currentPassword, newPassword) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/user/change-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeader()
+        },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword
+        })
+      });
+
+      if (response.ok) {
+        return { success: true };
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to change password');
+      }
+    } catch (error) {
+      console.error('Password change error:', error);
+      throw error;
+    }
+  };
+
   const value = {
     isAuthenticated, 
     user, 
@@ -110,7 +188,10 @@ export const AuthProvider = ({ children }) => {
     logout,
     loading,
     getAuthHeader,
-    isTokenExpired
+    isTokenExpired,
+    updateProfile, // Added
+    refreshUser,   // Added
+    changePassword // Added
   };
 
   return (

@@ -87,25 +87,17 @@ const Header = () => {
                     </div>
                     
                     <div className="dropdown-body">
-                      <Link to="/profile" className="dropdown-item" onClick={() => setIsProfileOpen(false)}>
+                      <Link to="/my-profile" className="dropdown-item" onClick={() => setIsProfileOpen(false)}>
                         <i className="fas fa-user"></i>
                         <span>My Profile</span>
                       </Link>
-                      <Link to="/orders" className="dropdown-item" onClick={() => setIsProfileOpen(false)}>
+                      <Link to="/my-orders" className="dropdown-item" onClick={() => setIsProfileOpen(false)}>
                         <i className="fas fa-shopping-bag"></i>
                         <span>My Orders</span>
                       </Link>
                       <Link to="/wishlist" className="dropdown-item" onClick={() => setIsProfileOpen(false)}>
                         <i className="fas fa-heart"></i>
                         <span>Wishlist</span>
-                      </Link>
-                      <Link to="/settings" className="dropdown-item" onClick={() => setIsProfileOpen(false)}>
-                        <i className="fas fa-cog"></i>
-                        <span>Settings</span>
-                      </Link>
-                      <Link to="/messages" className="dropdown-item" onClick={() => setIsProfileOpen(false)}>
-                        <i className="fas fa-envelope"></i>
-                        <span>Messages</span>
                       </Link>
                     </div>
                     

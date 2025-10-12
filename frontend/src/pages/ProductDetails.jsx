@@ -1,16 +1,16 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { CartContext } from '../context/CartContext';
-import { WishlistContext } from '../context/WishlistContext';
+import { useCart } from '../context/CartContext';
+import { useWishlist } from '../context/WishlistContext';
 import './ProductDetails.css';
 
 const ProductDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
-  const { addToCart } = useContext(CartContext);
-  const { addToWishlist, wishlistItems } = useContext(WishlistContext);
+  const { addToCart, cartItems } = useCart();
+  const { addToWishlist, wishlistItems } = useWishlist();
   
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -30,6 +30,9 @@ const ProductDetails = () => {
 
   // Check if product is in wishlist
   const isInWishlist = wishlistItems.some(item => item._id === product?._id);
+
+  // Check if product is in cart
+  const isInCart = cartItems.some(item => item.id === product?._id);
 
   // Calculate current price based on quantity
   const getCurrentPrice = () => {
@@ -147,12 +150,19 @@ const ProductDetails = () => {
     }
 
     if (product && currentPrice) {
-      addToCart({
-        ...product,
-        quantity,
-        unitPrice: currentPrice,
-        totalPrice: currentPrice * quantity
-      });
+      // Create cart product object with proper structure
+      const cartProduct = {
+        id: product._id,
+        name: product.name,
+        supplier: product.supplier,
+        moq: product.moq,
+        image: getImageUrl(product.image),
+        price: currentPrice,
+        quantity: quantity,
+        subtotal: currentPrice * quantity
+      };
+
+      addToCart(cartProduct);
       alert('Product added to cart!');
     } else {
       alert('Please select a valid quantity to add to cart.');
@@ -352,11 +362,11 @@ const ProductDetails = () => {
                   Request Quote
                 </button>
                 <button 
-                  className="btn btn-secondary"
+                  className={`btn btn-secondary ${isInCart ? 'in-cart' : ''}`}
                   onClick={handleAddToCart}
                 >
-                  <span>🛒</span>
-                  Add to Cart
+                  <span>{isInCart ? '✅' : '🛒'}</span>
+                  {isInCart ? 'Added to Cart' : 'Add to Cart'}
                 </button>
                 <button 
                   className={`btn btn-outline ${isInWishlist ? 'in-wishlist' : ''}`}
