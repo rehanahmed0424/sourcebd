@@ -197,7 +197,7 @@ const Register = () => {
             
             <div className="terms-text">
               By creating an account, you agree to our{' '}
-              <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>
+              <a href="/terms-of-service">Terms of Service</a> and <a href="/privacy-policy">Privacy Policy</a>
             </div>
             
             <div className="form-footer">

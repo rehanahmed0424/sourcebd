@@ -1,10 +1,17 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { useWishlist } from '../context/WishlistContext';
 import './ProductCard.css';
 
 const ProductCard = ({ product }) => {
   const [imageError, setImageError] = useState(false);
-  const [isFavorite, setIsFavorite] = useState(false);
+  const { isAuthenticated } = useAuth();
+  const { addToWishlist, removeFromWishlist, wishlistItems } = useWishlist();
+  const navigate = useNavigate();
+
+  // Check if product is in wishlist
+  const isInWishlist = wishlistItems.some(item => item._id === product._id || item.id === product._id);
 
   const handleImageError = (e) => {
     console.warn(`Image failed to load for product: ${product.name}`);
@@ -23,9 +30,17 @@ const ProductCard = ({ product }) => {
   const handleFavoriteClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    setIsFavorite(!isFavorite);
-    // Here you would typically make an API call to update favorites
-    console.log('Toggle favorite:', product._id, !isFavorite);
+    
+    if (!isAuthenticated) {
+      navigate('/login', { state: { from: window.location.pathname } });
+      return;
+    }
+
+    if (isInWishlist) {
+      removeFromWishlist(product._id);
+    } else {
+      addToWishlist(product);
+    }
   };
 
   const getImageUrl = (imagePath) => {
@@ -99,11 +114,11 @@ const ProductCard = ({ product }) => {
           </Link>
           
           <button 
-            className="favorite-btn" 
+            className={`favorite-btn ${isInWishlist ? 'in-wishlist' : ''}`} 
             onClick={handleFavoriteClick}
-            title={isFavorite ? "Remove from favorites" : "Add to favorites"}
+            title={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
           >
-            <i className={isFavorite ? "fas fa-heart" : "far fa-heart"}></i>
+            <i className={isInWishlist ? "fas fa-heart" : "far fa-heart"}></i>
           </button>
         </div>
       </div>

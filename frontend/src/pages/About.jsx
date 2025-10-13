@@ -60,9 +60,6 @@ const About = () => {
             <p>
               SourceBd is Bangladesh's premier B2B marketplace, dedicated to showcasing the best of Bangladeshi manufacturing to the world.
             </p>
-            <div className="hero-buttons">
-              <Link to="/register" className="btn btn-primary">Start Sourcing Today</Link>
-            </div>
           </div>
         </div>
       </section>

@@ -209,3 +209,11 @@
     align-self: flex-start;
   }
 }
+
+.favorite-btn.in-wishlist {
+  color: #ff6b00;
+}
+
+.favorite-btn.in-wishlist:hover {
+  color: #e55a00;
+}

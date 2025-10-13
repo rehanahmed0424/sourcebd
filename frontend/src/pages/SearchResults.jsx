@@ -71,16 +71,6 @@ const SearchResults = () => {
 
   return (
     <main className="search-results-page">
-      {/* Breadcrumb */}
-      <div className="breadcrumb">
-        <div className="container">
-          <div className="breadcrumb-content">
-            <Link to="/">Home</Link>
-            <i className="fas fa-chevron-right"></i>
-            <span>Search Results</span>
-          </div>
-        </div>
-      </div>
 
       <div className="container">
         {/* Header */}

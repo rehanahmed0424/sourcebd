@@ -28,11 +28,38 @@ const ProductDetails = () => {
     quantity: 1
   });
 
+  // Toast notification state
+  const [toast, setToast] = useState({
+    show: false,
+    message: '',
+    type: 'success',
+    action: ''
+  });
+
   // Check if product is in wishlist
   const isInWishlist = wishlistItems.some(item => item._id === product?._id);
 
   // Check if product is in cart
   const isInCart = cartItems.some(item => item.id === product?._id);
+
+  // Show toast notification
+  const showToast = (message, type = 'success', action = '') => {
+    setToast({
+      show: true,
+      message,
+      type,
+      action
+    });
+    
+    setTimeout(() => {
+      setToast(prev => ({ ...prev, show: false }));
+    }, 3000);
+  };
+
+  // Hide toast manually
+  const hideToast = () => {
+    setToast(prev => ({ ...prev, show: false }));
+  };
 
   // Calculate current price based on quantity
   const getCurrentPrice = () => {
@@ -124,7 +151,7 @@ const ProductDetails = () => {
       });
 
       if (response.ok) {
-        alert('Your inquiry has been sent successfully! The supplier will contact you soon.');
+        showToast('Your inquiry has been sent successfully! The supplier will contact you soon.', 'success', 'inquiry');
         setIsInquiryModalOpen(false);
         setInquiryData({
           name: '',
@@ -139,7 +166,7 @@ const ProductDetails = () => {
       }
     } catch (err) {
       console.error('Error sending inquiry:', err);
-      alert('Failed to send inquiry. Please try again.');
+      showToast('Failed to send inquiry. Please try again.', 'error', 'inquiry');
     }
   };
 
@@ -150,7 +177,6 @@ const ProductDetails = () => {
     }
 
     if (product && currentPrice) {
-      // Create cart product object with proper structure
       const cartProduct = {
         id: product._id,
         name: product.name,
@@ -163,9 +189,9 @@ const ProductDetails = () => {
       };
 
       addToCart(cartProduct);
-      alert('Product added to cart!');
+      showToast('Product added to cart successfully!', 'success', 'cart');
     } else {
-      alert('Please select a valid quantity to add to cart.');
+      showToast('Please select a valid quantity to add to cart.', 'warning', 'cart');
     }
   };
 
@@ -178,9 +204,9 @@ const ProductDetails = () => {
     if (product) {
       addToWishlist(product);
       if (!isInWishlist) {
-        alert('Product added to wishlist!');
+        showToast('Product added to wishlist!', 'success', 'wishlist');
       } else {
-        alert('Product removed from wishlist!');
+        showToast('Product removed from wishlist!', 'info', 'wishlist');
       }
     }
   };
@@ -204,6 +230,21 @@ const ProductDetails = () => {
     { label: 'Packaging', value: product?.specifications?.packaging },
     { label: 'MOQ', value: `${product?.moq} units` }
   ];
+
+  // Get icon based on toast type and action
+  const getToastIcon = () => {
+    if (toast.action === 'cart') return '🛒';
+    if (toast.action === 'wishlist') return '❤️';
+    if (toast.action === 'inquiry') return '📩';
+    
+    switch (toast.type) {
+      case 'success': return '✅';
+      case 'error': return '❌';
+      case 'warning': return '⚠️';
+      case 'info': return 'ℹ️';
+      default: return '✅';
+    }
+  };
 
   if (loading) {
     return (
@@ -238,12 +279,24 @@ const ProductDetails = () => {
 
   return (
     <div className="product-details">
-      {/* Main Product Section */}
-      <section className="product-main">
-        <div className="container">
+      {/* Toast Notification */}
+      {toast.show && (
+        <div className={`toast toast-${toast.type}`}>
+          <div className="toast-content">
+            <div className="toast-icon">{getToastIcon()}</div>
+            <div className="toast-message">{toast.message}</div>
+            <button className="toast-close" onClick={hideToast}>×</button>
+          </div>
+          <div className="toast-progress"></div>
+        </div>
+      )}
+
+      {/* Main Product Section - ONLY images and basic info in 2-column layout */}
+      <div className="container">
+        <section className="product-main">
           <div className="product-layout">
             
-            {/* Product Gallery */}
+            {/* Product Gallery - Left Side */}
             <div className="product-gallery">
               <div className="main-image">
                 <img 
@@ -267,7 +320,7 @@ const ProductDetails = () => {
               </div>
             </div>
 
-            {/* Product Info */}
+            {/* Product Info - Right Side - ONLY basic info */}
             <div className="product-info">
               <div className="product-header">
                 <h1 className="product-title">{product.name}</h1>
@@ -289,12 +342,12 @@ const ProductDetails = () => {
                 </div>
               </div>
 
-              {/* Updated Price Section */}
+              {/* Price Section */}
               <div className="price-section">
                 {currentPrice ? (
                   <>
-                    <div className="current-price">${currentPrice.toFixed(2)} / unit</div>
-                    <div className="total-price">Total: ${totalPrice}</div>
+                    <div className="current-price">৳{currentPrice.toFixed(2)} / unit</div>
+                    <div className="total-price">Total: ৳{totalPrice}</div>
                     <div className="price-note">Price varies based on quantity</div>
                   </>
                 ) : (
@@ -317,7 +370,7 @@ const ProductDetails = () => {
                           <div className="tier-range">
                             {tier.minQty} - {tier.maxQty === 0 ? 'Above' : tier.maxQty} units
                           </div>
-                          <div className="tier-price">${tier.price.toFixed(2)}/unit</div>
+                          <div className="tier-price">৳{tier.price.toFixed(2)}/unit</div>
                         </div>
                       ))
                     }
@@ -325,20 +378,7 @@ const ProductDetails = () => {
                 </div>
               )}
 
-              <div className="specs-preview">
-                <h3>Key Specifications</h3>
-                <div className="specs-grid">
-                  {specifications.slice(0, 4).map((spec, index) => (
-                    spec.value && (
-                      <div key={index} className="spec-item">
-                        <span className="spec-label">{spec.label}:</span>
-                        <span className="spec-value">{spec.value}</span>
-                      </div>
-                    )
-                  ))}
-                </div>
-              </div>
-
+              {/* Quantity Section */}
               <div className="quantity-section">
                 <label htmlFor="quantity">Order Quantity:</label>
                 <div className="quantity-input">
@@ -353,6 +393,7 @@ const ProductDetails = () => {
                 </div>
               </div>
 
+              {/* Action Buttons */}
               <div className="action-buttons">
                 <button 
                   className="btn btn-primary btn-large"
@@ -377,6 +418,7 @@ const ProductDetails = () => {
                 </button>
               </div>
 
+              {/* Quick Info */}
               <div className="quick-info">
                 <div className="info-item">
                   <span className="icon">🚚</span>
@@ -393,10 +435,10 @@ const ProductDetails = () => {
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </div>
 
-      {/* Product Details Tabs */}
+      {/* COMPLETELY SEPARATE TABS SECTION - OUTSIDE THE MAIN CONTAINER */}
       <section className="product-tabs-section">
         <div className="container">
           <div className="tabs-container">
@@ -425,17 +467,19 @@ const ProductDetails = () => {
               {activeTab === 'description' && (
                 <div className="tab-panel">
                   <h3>Product Description</h3>
-                  <p>{product.description || "No description available for this product. Contact the supplier for more details."}</p>
-                  
-                  <div className="features">
-                    <h4>Key Features</h4>
-                    <ul>
-                      <li>High-quality materials and craftsmanship</li>
-                      <li>Competitive pricing with bulk discounts</li>
-                      <li>Customization options available</li>
-                      <li>Fast and reliable shipping</li>
-                      <li>Professional customer support</li>
-                    </ul>
+                  <div className="description-content">
+                    <p>{product.description || "No description available for this product. Contact the supplier for more details."}</p>
+                    
+                    <div className="features">
+                      <h4>Key Features</h4>
+                      <ul>
+                        <li>High-quality materials and craftsmanship</li>
+                        <li>Competitive pricing with bulk discounts</li>
+                        <li>Customization options available</li>
+                        <li>Fast and reliable shipping</li>
+                        <li>Professional customer support</li>
+                      </ul>
+                    </div>
                   </div>
                 </div>
               )}

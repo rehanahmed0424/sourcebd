@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import ProductCard from '../components/ProductCard'; // Import the ProductCard component
 import './cart.css';
 
 const Cart = () => {
@@ -65,7 +66,7 @@ const Cart = () => {
               <i className="fas fa-shopping-cart"></i>
               <h3>Your cart is empty</h3>
               <p>Browse our products and add items to your cart</p>
-              <Link to="/products" className="btn btn-primary">
+              <Link to="/" className="btn btn-primary">
                 Continue Shopping
               </Link>
             </div>
@@ -96,7 +97,7 @@ const Cart = () => {
                             </div>
                           </div>
                         </td>
-                        <td className="price">${item.price?.toFixed(2) || '0.00'}</td>
+                        <td className="price">৳{item.price?.toFixed(2) || '0.00'}</td>
                         <td>
                           <div className="quantity-controls">
                             <button 
@@ -115,7 +116,7 @@ const Cart = () => {
                             </button>
                           </div>
                         </td>
-                        <td className="subtotal">${item.subtotal?.toFixed(2) || '0.00'}</td>
+                        <td className="subtotal">৳{item.subtotal?.toFixed(2) || '0.00'}</td>
                         <td>
                           <button 
                             className="remove-btn" 
@@ -137,24 +138,24 @@ const Cart = () => {
                   <div className="summary-details">
                     <div className="summary-row">
                       <span>Subtotal:</span>
-                      <span>${totals.subtotal}</span>
+                      <span>৳{totals.subtotal}</span>
                     </div>
                     <div className="summary-row">
                       <span>Shipping:</span>
-                      <span>${totals.shipping}</span>
+                      <span>৳{totals.shipping}</span>
                     </div>
                     <div className="summary-row">
                       <span>Tax:</span>
-                      <span>${totals.tax}</span>
+                      <span>৳{totals.tax}</span>
                     </div>
                     <div className="summary-divider"></div>
                     <div className="summary-row total">
                       <span>Total:</span>
-                      <span>${totals.total}</span>
+                      <span>৳{totals.total}</span>
                     </div>
                   </div>
                   <p className="summary-note">
-                    Prices are in USD. Shipping costs may vary based on location.
+                    Prices are in BDT. Shipping costs may vary based on location.
                   </p>
                   <div className="summary-actions">
                     <Link to="/checkout" className="btn btn-primary btn-full">
@@ -187,35 +188,7 @@ const Cart = () => {
             ) : relatedProducts.length > 0 ? (
               <div className="products-grid">
                 {relatedProducts.map(product => (
-                  <div key={product._id} className="product-card">
-                    <div className="product-image">
-                      {product.verified && <span className="verified-badge">Verified</span>}
-                      <img 
-                        src={product.image ? `http://localhost:5000/uploads/${product.image}` : '/images/placeholder.jpg'} 
-                        alt={product.name}
-                        onError={(e) => {
-                          e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjVmN2Y5Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtc2l6ZT0iMTQiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIiBmaWxsPSIjODg4Ij5Qcm9kdWN0IEltYWdlPC90ZXh0Pjwvc3ZnPg==';
-                        }}
-                      />
-                    </div>
-                    <div className="product-content">
-                      <h3>{product.name}</h3>
-                      <div className="product-details">
-                        {product.tieredPricing && product.tieredPricing.length > 0 ? (
-                          <span className="price">
-                            ${product.tieredPricing[0].price.toFixed(2)}
-                          </span>
-                        ) : (
-                          <span className="price">Contact for pricing</span>
-                        )}
-                      </div>
-                      <div className="product-actions">
-                        <Link to={`/product/${product._id}`} className="btn btn-small">
-                          View Details
-                        </Link>
-                      </div>
-                    </div>
-                  </div>
+                  <ProductCard key={product._id} product={product} />
                 ))}
               </div>
             ) : (

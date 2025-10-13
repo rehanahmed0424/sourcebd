@@ -6,15 +6,16 @@
   color: #333;
 }
 
-/* Main Product Section */
-.product-main {
-  padding: 2rem 0;
-}
-
 .container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 1rem;
+}
+
+/* Main Product Section - TOP SECTION ONLY (2-column layout) */
+.product-main {
+  padding: 2rem 0;
+  background: #fff;
 }
 
 .product-layout {
@@ -22,12 +23,6 @@
   grid-template-columns: 1fr 1fr;
   gap: 3rem;
   align-items: start;
-}
-
-@media (max-width: 900px) {
-  .product-layout {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* Product Gallery */
@@ -87,7 +82,7 @@
   object-fit: cover;
 }
 
-/* Product Info - Remove description preview from here */
+/* Product Info - Clean layout without description preview */
 .product-info {
   display: flex;
   flex-direction: column;
@@ -212,8 +207,6 @@
   color: #2d4d31;
 }
 
-/* REMOVED specs-preview from product-info - moved to tabs */
-
 .quantity-section {
   display: flex;
   flex-direction: column;
@@ -336,11 +329,13 @@
   font-size: 1.1rem;
 }
 
-/* Product Tabs Section - Moved description here */
+/* Product Tabs Section - COMPLETELY SEPARATE BOTTOM SECTION */
 .product-tabs-section {
   padding: 3rem 0;
-  background: #fff;
+  background: #f8f9fa;
   border-top: 1px solid #e9ecef;
+  width: 100%;
+  margin-top: 0;
 }
 
 .tabs-container {
@@ -720,9 +715,133 @@
   100% { transform: rotate(360deg); }
 }
 
+/* Toast Notifications */
+.toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  min-width: 300px;
+  max-width: 400px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  overflow: hidden;
+  animation: slideInRight 0.3s ease-out;
+}
+
+.toast-success {
+  border-left: 4px solid #10b981;
+}
+
+.toast-error {
+  border-left: 4px solid #ef4444;
+}
+
+.toast-warning {
+  border-left: 4px solid #f59e0b;
+}
+
+.toast-info {
+  border-left: 4px solid #3b82f6;
+}
+
+.toast-content {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  position: relative;
+}
+
+.toast-icon {
+  font-size: 20px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.toast-message {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  line-height: 1.4;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  font-size: 18px;
+  color: #9ca3af;
+  cursor: pointer;
+  padding: 4px;
+  margin-left: 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.toast-close:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.toast-progress {
+  height: 3px;
+  background: #e5e7eb;
+  position: relative;
+  overflow: hidden;
+}
+
+.toast-progress::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 100%;
+  animation: progressBar 3s linear forwards;
+}
+
+.toast-success .toast-progress::after {
+  background: #10b981;
+}
+
+.toast-error .toast-progress::after {
+  background: #ef4444;
+}
+
+.toast-warning .toast-progress::after {
+  background: #f59e0b;
+}
+
+.toast-info .toast-progress::after {
+  background: #3b82f6;
+}
+
+/* Toast Animations */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes progressBar {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
 /* Responsive Design */
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .product-layout {
+    grid-template-columns: 1fr;
     gap: 2rem;
   }
   
@@ -772,4 +891,21 @@
   .features ul {
     grid-template-columns: 1fr;
   }
+  
+  .product-tabs-section {
+    padding: 2rem 0;
+  }
+  
+  .toast {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    min-width: auto;
+    max-width: none;
+  }
+}
+
+/* Toast Stacking (if multiple toasts) */
+.toast + .toast {
+  margin-top: 10px;
 }

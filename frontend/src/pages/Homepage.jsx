@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ProductCard from '../components/ProductCard';
 import './Homepage.css';
@@ -13,6 +13,7 @@ const HomePage = () => {
   const [apiStatus, setApiStatus] = useState('checking');
   
   const { isAuthenticated, user } = useAuth();
+  const navigate = useNavigate();
 
   // Fallback data functions
   const getFallbackCategories = () => [
@@ -143,6 +144,11 @@ const HomePage = () => {
     fetchData();
   }, []);
 
+  // Handle category click
+  const handleCategoryClick = (categoryName) => {
+    navigate(`/search?q=${encodeURIComponent(categoryName)}&category=${encodeURIComponent(categoryName)}`);
+  };
+
   // Handle image loading errors
   const handleImageError = (e, type) => {
     console.warn(`Image failed to load for ${type}:`, e.target.src);
@@ -196,7 +202,11 @@ const HomePage = () => {
           </div>
           <div className="categories-grid">
             {categories.map((category) => (
-              <div key={category._id} className="category-card">
+              <div 
+                key={category._id} 
+                className="category-card"
+                onClick={() => handleCategoryClick(category.name)}
+              >
                 <div className="category-image">
                   <img 
                     src={category.image ? `http://localhost:5000${category.image}` : '/images/category-placeholder.jpg'} 
@@ -207,6 +217,9 @@ const HomePage = () => {
                 <div className="category-content">
                   <h3>{category.name}</h3>
                   <p>{category.description}</p>
+                  <div className="category-cta">
+                    <span>Browse Products →</span>
+                  </div>
                 </div>
               </div>
             ))}
@@ -238,22 +251,18 @@ const HomePage = () => {
           </div>
           <div className="steps-grid">
             <div className="step-card">
-              <div className="step-number">1</div>
               <h3>Search Products</h3>
               <p>Browse through thousands of products from verified suppliers across Bangladesh.</p>
             </div>
             <div className="step-card">
-              <div className="step-number">2</div>
               <h3>Request Quotes</h3>
               <p>Send quotation requests to multiple suppliers with your specific requirements.</p>
             </div>
             <div className="step-card">
-              <div className="step-number">3</div>
               <h3>Compare & Negotiate</h3>
               <p>Receive quotes, compare offers, and negotiate directly with suppliers.</p>
             </div>
             <div className="step-card">
-              <div className="step-number">4</div>
               <h3>Secure Payment & Ship</h3>
               <p>Use our secure payment system and arrange shipping with trusted partners.</p>
             </div>
@@ -291,6 +300,27 @@ const HomePage = () => {
           <div className="cta-content">
             <h2>Ready to Source from Bangladesh?</h2>
             <p>Join thousands of businesses that have discovered quality products and reliable suppliers through SourceBd</p>
+            <div className="cta-actions">
+              {!isAuthenticated ? (
+                <>
+                  <button 
+                    className="btn btn-primary"
+                    onClick={() => navigate('/register')}
+                  >
+                    Create Free Account
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button 
+                    className="btn btn-primary"
+                    onClick={() => navigate('/search')}
+                  >
+                    Start Shopping
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </section>

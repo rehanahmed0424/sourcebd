@@ -13,6 +13,14 @@ const MyProfile = () => {
     rfqs: 0,
     wishlist: 0
   });
+
+  // Toast notification state
+  const [toast, setToast] = useState({
+    show: false,
+    message: '',
+    type: 'success' // 'success', 'error', 'warning'
+  });
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -25,6 +33,25 @@ const MyProfile = () => {
     state: '',
     zipCode: ''
   });
+
+  // Show toast notification
+  const showToast = (message, type = 'success') => {
+    setToast({
+      show: true,
+      message,
+      type
+    });
+    
+    // Auto hide after 3 seconds
+    setTimeout(() => {
+      setToast(prev => ({ ...prev, show: false }));
+    }, 3000);
+  };
+
+  // Hide toast manually
+  const hideToast = () => {
+    setToast(prev => ({ ...prev, show: false }));
+  };
 
   // Fetch user statistics
   const fetchUserStats = async () => {
@@ -44,7 +71,7 @@ const MyProfile = () => {
         setStats(prev => ({ ...prev, orders: orders.length }));
       }
 
-      // Fetch wishlist count (if you have a wishlist API)
+      // Fetch wishlist count
       const wishlistResponse = await fetch('http://localhost:5000/api/wishlist', {
         headers: {
           'Content-Type': 'application/json',
@@ -58,17 +85,64 @@ const MyProfile = () => {
         setStats(prev => ({ ...prev, wishlist: wishlistCount }));
       }
 
-      // For RFQs, we'll use a placeholder since we don't have an RFQ API yet
-      // You can replace this with actual RFQ API call when available
-      setStats(prev => ({ ...prev, rfqs: 0 }));
+      // Fetch RFQs count
+      const rfqsResponse = await fetch('http://localhost:5000/api/rfqs/count', {
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeader()
+        }
+      });
+
+      if (rfqsResponse.ok) {
+        const rfqsData = await rfqsResponse.json();
+        setStats(prev => ({ ...prev, rfqs: rfqsData.count || 0 }));
+      }
 
     } catch (error) {
       console.error('Error fetching user stats:', error);
     }
   };
 
+  // Fetch user profile data from API to ensure we have the latest data
+  const fetchUserProfile = async () => {
+    if (!isAuthenticated) return;
+
+    try {
+      const response = await fetch('http://localhost:5000/api/user/profile', {
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeader()
+        }
+      });
+
+      if (response.ok) {
+        const userData = await response.json();
+        // Update form data with fresh data from API
+        setFormData({
+          firstName: userData.firstName || '',
+          lastName: userData.lastName || '',
+          email: userData.email || '',
+          phone: userData.phone || '',
+          company: userData.company || '',
+          country: userData.country || 'Bangladesh',
+          address: userData.address || '',
+          city: userData.city || '',
+          state: userData.state || '',
+          zipCode: userData.zipCode || ''
+        });
+        
+        if (userData.profilePicture) {
+          setImagePreview(`http://localhost:5000${userData.profilePicture}`);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    }
+  };
+
   useEffect(() => {
     if (user) {
+      // Use both context user data and fetch fresh data from API
       setFormData({
         firstName: user.firstName || '',
         lastName: user.lastName || '',
@@ -84,8 +158,11 @@ const MyProfile = () => {
       if (user.profilePicture) {
         setImagePreview(`http://localhost:5000${user.profilePicture}`);
       }
+      
+      // Fetch fresh profile data from API
+      fetchUserProfile();
     }
-  }, [user]);
+  }, [user, isAuthenticated]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -101,6 +178,18 @@ const MyProfile = () => {
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        showToast('Please select a valid image file', 'error');
+        return;
+      }
+      
+      // Validate file size (5MB max)
+      if (file.size > 5 * 1024 * 1024) {
+        showToast('Image size should be less than 5MB', 'error');
+        return;
+      }
+      
       setProfileImage(file);
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -119,7 +208,9 @@ const MyProfile = () => {
       
       // Append form data
       Object.keys(formData).forEach(key => {
-        submitData.append(key, formData[key]);
+        if (formData[key] !== undefined && formData[key] !== null) {
+          submitData.append(key, formData[key]);
+        }
       });
       
       // Append profile picture if changed
@@ -130,11 +221,40 @@ const MyProfile = () => {
       await updateProfile(submitData);
       setIsEditing(false);
       setProfileImage(null);
-      alert('Profile updated successfully!');
+      
+      // Fetch fresh data after update
+      await fetchUserProfile();
+      showToast('Profile updated successfully!', 'success');
     } catch (error) {
-      alert('Failed to update profile. Please try again.');
+      console.error('Profile update error:', error);
+      showToast('Failed to update profile. Please try again.', 'error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setProfileImage(null);
+    // Reset form data to current user data
+    if (user) {
+      setFormData({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        company: user.company || '',
+        country: user.country || 'Bangladesh',
+        address: user.address || '',
+        city: user.city || '',
+        state: user.state || '',
+        zipCode: user.zipCode || ''
+      });
+      if (user.profilePicture) {
+        setImagePreview(`http://localhost:5000${user.profilePicture}`);
+      } else {
+        setImagePreview('');
+      }
     }
   };
 
@@ -152,6 +272,16 @@ const MyProfile = () => {
     });
   };
 
+  // Get toast icon based on type
+  const getToastIcon = () => {
+    switch (toast.type) {
+      case 'success': return '✅';
+      case 'error': return '❌';
+      case 'warning': return '⚠️';
+      default: return '✅';
+    }
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="auth-required">
@@ -167,6 +297,18 @@ const MyProfile = () => {
 
   return (
     <div className="profile-page">
+      {/* Toast Notification */}
+      {toast.show && (
+        <div className={`toast toast-${toast.type}`}>
+          <div className="toast-content">
+            <div className="toast-icon">{getToastIcon()}</div>
+            <div className="toast-message">{toast.message}</div>
+            <button className="toast-close" onClick={hideToast}>×</button>
+          </div>
+          <div className="toast-progress"></div>
+        </div>
+      )}
+
       <div className="container">
         <div className="page-header">
           <h1>My Profile</h1>
@@ -230,7 +372,7 @@ const MyProfile = () => {
                 <h2>Personal Information</h2>
                 <button 
                   className="btn btn-outline"
-                  onClick={() => setIsEditing(!isEditing)}
+                  onClick={isEditing ? handleCancelEdit : () => setIsEditing(true)}
                 >
                   {isEditing ? 'Cancel' : 'Edit Profile'}
                 </button>

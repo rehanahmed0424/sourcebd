@@ -1,9 +1,82 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const Contact = () => {
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    companyName: '',
+    phoneNumber: '',
+    subject: '',
+    message: ''
+  });
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prevState => ({
+      ...prevState,
+      [name]: value
+    }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    // Basic validation
+    if (!formData.fullName || !formData.email || !formData.message) {
+      toast.error('Please fill in all required fields', {
+        position: "top-right",
+        autoClose: 3000,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      return;
+    }
+
+    // Simulate form submission
+    // In a real application, you would make an API call here
+    console.log('Form submitted:', formData);
+    
+    // Show success toast
+    toast.success('Message sent successfully! We will get back to you within 24 hours.', {
+      position: "top-right",
+      autoClose: 5000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true,
+    });
+
+    // Reset form
+    setFormData({
+      fullName: '',
+      email: '',
+      companyName: '',
+      phoneNumber: '',
+      subject: '',
+      message: ''
+    });
+  };
+
   return (
     <div className="contact-page">
+      <ToastContainer
+        position="top-right"
+        autoClose={5000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
+      
       {/* Hero Section */}
       <section className="contact-hero">
         <div className="container">
@@ -26,30 +99,60 @@ const Contact = () => {
                 <h2>Send us a Message</h2>
                 <p>We'll get back to you within 24 hours</p>
               </div>
-              <form className="contact-form">
+              <form className="contact-form" onSubmit={handleSubmit}>
                 <div className="form-row">
                   <div className="form-group">
-                    <label>Full Name</label>
-                    <input type="text" placeholder="Enter your full name" />
+                    <label>Full Name *</label>
+                    <input 
+                      type="text" 
+                      name="fullName"
+                      value={formData.fullName}
+                      onChange={handleInputChange}
+                      placeholder="Enter your full name" 
+                      required
+                    />
                   </div>
                   <div className="form-group">
-                    <label>Email Address</label>
-                    <input type="email" placeholder="Enter your email" />
+                    <label>Email Address *</label>
+                    <input 
+                      type="email" 
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      placeholder="Enter your email" 
+                      required
+                    />
                   </div>
                 </div>
                 <div className="form-row">
                   <div className="form-group">
                     <label>Company Name</label>
-                    <input type="text" placeholder="Enter your company name" />
+                    <input 
+                      type="text" 
+                      name="companyName"
+                      value={formData.companyName}
+                      onChange={handleInputChange}
+                      placeholder="Enter your company name" 
+                    />
                   </div>
                   <div className="form-group">
                     <label>Phone Number</label>
-                    <input type="tel" placeholder="Enter your phone number" />
+                    <input 
+                      type="tel" 
+                      name="phoneNumber"
+                      value={formData.phoneNumber}
+                      onChange={handleInputChange}
+                      placeholder="Enter your phone number" 
+                    />
                   </div>
                 </div>
                 <div className="form-group">
                   <label>Subject</label>
-                  <select>
+                  <select 
+                    name="subject"
+                    value={formData.subject}
+                    onChange={handleInputChange}
+                  >
                     <option value="">Select a subject</option>
                     <option value="general">General Inquiry</option>
                     <option value="supplier">Supplier Registration</option>
@@ -60,10 +163,19 @@ const Contact = () => {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label>Your Message</label>
-                  <textarea rows="6" placeholder="Enter your message"></textarea>
+                  <label>Your Message *</label>
+                  <textarea 
+                    rows="6" 
+                    name="message"
+                    value={formData.message}
+                    onChange={handleInputChange}
+                    placeholder="Enter your message"
+                    required
+                  ></textarea>
                 </div>
-                <button type="submit" className="btn btn-primary btn-full">Send Message</button>
+                <button type="submit" className="btn btn-primary btn-full">
+                  Send Message
+                </button>
               </form>
             </div>
 
@@ -132,6 +244,7 @@ const Contact = () => {
         </div>
       </section>
 
+      {/* Rest of the component remains the same */}
       {/* Offices Section */}
       <section className="offices-section section">
         <div className="container">

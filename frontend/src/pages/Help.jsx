@@ -32,7 +32,7 @@ const Help = () => {
               <p>
                 Learn how to find products, place orders, and manage purchases
               </p>
-              <Link to="#" className="btn btn-outline">Explore</Link>
+
             </div>
             <div className="topic-card">
               <div className="topic-icon">
@@ -42,7 +42,7 @@ const Help = () => {
               <p>
                 Guidance for suppliers to list products and manage orders
               </p>
-              <Link to="#" className="btn btn-outline">Explore</Link>
+
             </div>
             <div className="topic-card">
               <div className="topic-icon">
@@ -52,7 +52,7 @@ const Help = () => {
               <p>
                 Tips for secure transactions and protecting your account
               </p>
-              <Link to="#" className="btn btn-outline">Explore</Link>
+
             </div>
           </div>
         </div>
@@ -115,7 +115,7 @@ const Help = () => {
           </div>
           <div className="contact-grid">
             <div className="contact-card">
-              <div className="contact-icon">
+              <div className="contact-card-icon">
                 <i className="fas fa-envelope"></i>
               </div>
               <h3>Email Support</h3>
@@ -123,10 +123,10 @@ const Help = () => {
                 Send us an email and we'll respond within 24 hours
               </p>
               <div className="contact-info">support@sourcebd.com</div>
-              <Link to="mailto:support@sourcebd.com" className="btn btn-outline">Send Email</Link>
+
             </div>
             <div className="contact-card">
-              <div className="contact-icon">
+              <div className="contact-card-icon">
                 <i className="fas fa-phone"></i>
               </div>
               <h3>Call Us</h3>
@@ -134,60 +134,17 @@ const Help = () => {
                 Speak directly with our support team during business hours
               </p>
               <div className="contact-info">+880 1700-000000</div>
-              <Link to="tel:+8801700000000" className="btn btn-outline">Call Now</Link>
+
             </div>
             <div className="contact-card">
-              <div className="contact-icon">
+              <div className="contact-card-icon">
                 <i className="fas fa-comments"></i>
               </div>
-              <h3>Live Chat</h3>
+              <h3>Whatsapp</h3>
               <p>
-                Chat with our support agents in real-time
+                Chat with our support agents in real-time, Available 24/7
               </p>
-              <div className="contact-info">Available 24/7</div>
-              <Link to="#" className="btn btn-primary">Start Chat</Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Resources Section */}
-      <section className="resources-section section">
-        <div className="container">
-          <div className="section-title">
-            <h2>Helpful Resources</h2>
-            <p>Additional materials to help you succeed on SourceBd</p>
-          </div>
-          <div className="resources-grid">
-            <div className="resource-card">
-              <div className="resource-icon">
-                <i className="fas fa-book"></i>
-              </div>
-              <h3>Buyer's Guide</h3>
-              <p>
-                Comprehensive guide to sourcing products on SourceBd
-              </p>
-              <Link to="#" className="btn btn-outline">Download Guide</Link>
-            </div>
-            <div className="resource-card">
-              <div className="resource-icon">
-                <i className="fas fa-play-circle"></i>
-              </div>
-              <h3>Video Tutorials</h3>
-              <p>
-                Step-by-step video guides for buyers and suppliers
-              </p>
-              <Link to="#" className="btn btn-outline">Watch Videos</Link>
-            </div>
-            <div className="resource-card">
-              <div className="resource-icon">
-                <i className="fas fa-newspaper"></i>
-              </div>
-              <h3>Blog & Articles</h3>
-              <p>
-                Tips, trends, and insights for B2B trading in Bangladesh
-              </p>
-              <Link to="#" className="btn btn-outline">Read Articles</Link>
+              <div className="contact-info">+880 1700-000000</div>
             </div>
           </div>
         </div>

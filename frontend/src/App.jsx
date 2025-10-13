@@ -21,6 +21,8 @@ import RFQ from './pages/rfq';
 import MyProfile from './pages/myprofile';
 import MyOrders from './pages/myorders';
 import Checkout from './pages/checkout';
+import TermsOfService from './pages/TermsOfService';
+import PrivacyPolicy from './pages/PrivacyPolicy';
 
 // Error Boundary Component
 class ErrorBoundary extends React.Component {
@@ -94,6 +96,8 @@ const App = () => {
               <Route path="/rfq" element={<MainLayout><RFQ /></MainLayout>} />
               <Route path="/my-profile" element={<MainLayout><MyProfile /></MainLayout>} />
               <Route path="/my-orders" element={<MainLayout><MyOrders /></MainLayout>} />
+              <Route path="/terms-of-service" element={<MainLayout><TermsOfService /></MainLayout>} />
+              <Route path="/privacy-policy" element={<MainLayout><PrivacyPolicy /></MainLayout>} />
               <Route path="*" element={<MainLayout><div>404 - Page Not Found</div></MainLayout>} />
             </Routes>
           </WishlistProvider>

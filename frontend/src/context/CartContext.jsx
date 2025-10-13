@@ -15,28 +15,59 @@ export const useCart = () => {
 export const CartProvider = ({ children }) => {
   const [cartItems, setCartItems] = useState([]);
   const [cartCount, setCartCount] = useState(0);
-  const { isAuthenticated } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const { isAuthenticated, user } = useAuth();
 
-  // Load cart from localStorage on component mount
+  // Load cart from backend when user is authenticated
   useEffect(() => {
-    loadCartFromLocalStorage();
-  }, []);
+    if (isAuthenticated && user) {
+      loadCartFromBackend();
+    } else {
+      // For non-authenticated users, use localStorage as fallback
+      loadCartFromLocalStorage();
+    }
+  }, [isAuthenticated, user]);
 
   // Update cart count when cart items change
   useEffect(() => {
-    // Count distinct items (not total quantity)
     const distinctItemCount = cartItems.length;
     setCartCount(distinctItemCount);
-    
-    // Save to localStorage
-    try {
-      localStorage.setItem('sourcebd_cart', JSON.stringify(cartItems));
-    } catch (error) {
-      console.error('Error saving cart to localStorage:', error);
-    }
   }, [cartItems]);
 
-  // Load cart from localStorage
+  // Load cart from backend API
+  const loadCartFromBackend = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      if (!token) {
+        loadCartFromLocalStorage();
+        return;
+      }
+
+      const response = await fetch('http://localhost:5000/api/cart', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const cartData = await response.json();
+        setCartItems(cartData.items || []);
+      } else {
+        // If backend fails, fallback to localStorage
+        loadCartFromLocalStorage();
+      }
+    } catch (error) {
+      console.error('Error loading cart from backend:', error);
+      loadCartFromLocalStorage();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load cart from localStorage (for non-authenticated users)
   const loadCartFromLocalStorage = () => {
     try {
       const savedCart = localStorage.getItem('sourcebd_cart');
@@ -50,29 +81,72 @@ export const CartProvider = ({ children }) => {
     }
   };
 
-  // Add item to cart - FIXED VERSION
+  // Save cart to backend or localStorage
+  const saveCart = async (items) => {
+    if (isAuthenticated && user) {
+      await saveCartToBackend(items);
+    } else {
+      saveCartToLocalStorage(items);
+    }
+  };
+
+  // Save cart to backend API
+  const saveCartToBackend = async (items) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      // Update each item in the backend cart
+      for (const item of items) {
+        await fetch('http://localhost:5000/api/cart', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            productId: item.id,
+            quantity: item.quantity,
+            unitPrice: item.price
+          }),
+        });
+      }
+    } catch (error) {
+      console.error('Error saving cart to backend:', error);
+      // Fallback to localStorage if backend fails
+      saveCartToLocalStorage(items);
+    }
+  };
+
+  // Save cart to localStorage
+  const saveCartToLocalStorage = (items) => {
+    try {
+      localStorage.setItem('sourcebd_cart', JSON.stringify(items));
+    } catch (error) {
+      console.error('Error saving cart to localStorage:', error);
+    }
+  };
+
+  // Add item to cart
   const addToCart = (product, quantity = 1) => {
     if (!product || !product.id) {
       console.error('Invalid product:', product);
       return;
     }
 
-    console.log('Adding to cart:', { product, quantity }); // Debug log
-
     setCartItems(prevItems => {
       const existingItemIndex = prevItems.findIndex(item => item.id === product.id);
-      
+      let newItems;
+
       if (existingItemIndex > -1) {
         // If item exists, use the NEW quantity from the product parameter, not add to existing quantity
-        const updatedItems = [...prevItems];
+        newItems = [...prevItems];
         const newQuantity = product.quantity || quantity;
-        updatedItems[existingItemIndex] = {
-          ...updatedItems[existingItemIndex],
-          quantity: newQuantity, // Use the new quantity, don't add to existing
-          subtotal: (updatedItems[existingItemIndex].price || 0) * newQuantity
+        newItems[existingItemIndex] = {
+          ...newItems[existingItemIndex],
+          quantity: newQuantity,
+          subtotal: (newItems[existingItemIndex].price || 0) * newQuantity
         };
-        console.log('Updated existing item:', updatedItems[existingItemIndex]); // Debug log
-        return updatedItems;
       } else {
         // Add new item
         const price = product.price || product.tieredPricing?.[0]?.price || 0;
@@ -84,12 +158,15 @@ export const CartProvider = ({ children }) => {
           moq: product.moq || 1,
           image: product.image || '/images/placeholder.jpg',
           price: price,
-          quantity: itemQuantity, // Use the passed quantity
+          quantity: itemQuantity,
           subtotal: price * itemQuantity
         };
-        console.log('Added new item:', newItem); // Debug log
-        return [...prevItems, newItem];
+        newItems = [...prevItems, newItem];
       }
+
+      // Save to backend or localStorage
+      saveCart(newItems);
+      return newItems;
     });
   };
 
@@ -100,8 +177,8 @@ export const CartProvider = ({ children }) => {
       return;
     }
     
-    setCartItems(prevItems => 
-      prevItems.map(item => 
+    setCartItems(prevItems => {
+      const newItems = prevItems.map(item => 
         item.id === productId 
           ? { 
               ...item, 
@@ -109,19 +186,33 @@ export const CartProvider = ({ children }) => {
               subtotal: (item.price || 0) * newQuantity
             }
           : item
-      )
-    );
+      );
+      
+      // Save to backend or localStorage
+      saveCart(newItems);
+      return newItems;
+    });
   };
 
   // Remove item from cart
   const removeFromCart = (productId) => {
-    setCartItems(prevItems => prevItems.filter(item => item.id !== productId));
+    setCartItems(prevItems => {
+      const newItems = prevItems.filter(item => item.id !== productId);
+      // Save to backend or localStorage
+      saveCart(newItems);
+      return newItems;
+    });
   };
 
   // Clear entire cart
   const clearCart = () => {
     setCartItems([]);
-    localStorage.removeItem('sourcebd_cart');
+    if (isAuthenticated && user) {
+      // Clear backend cart by setting all quantities to 0
+      saveCartToBackend([]);
+    } else {
+      localStorage.removeItem('sourcebd_cart');
+    }
   };
 
   // Calculate cart total
@@ -136,14 +227,15 @@ export const CartProvider = ({ children }) => {
 
   const value = {
     cartItems,
-    cartCount, // Number of distinct items
+    cartCount,
+    loading,
     addToCart,
     updateQuantity,
     removeFromCart,
     clearCart,
     getCartTotal,
     getTotalQuantity,
-    refreshCart: loadCartFromLocalStorage
+    refreshCart: isAuthenticated ? loadCartFromBackend : loadCartFromLocalStorage
   };
 
   return (
