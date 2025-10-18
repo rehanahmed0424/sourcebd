@@ -5,7 +5,7 @@ import { CartProvider } from './context/CartContext';
 import { WishlistProvider } from './context/WishlistContext';
 import MainLayout from './layouts/MainLayout';
 import HomePage from './pages/Homepage';
-import Login from './pages/login';
+import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import AdminPanel from './pages/AdminPanel';
