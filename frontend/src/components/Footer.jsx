@@ -12,7 +12,6 @@ const Footer = () => {
             <div className="terms-links">
               <Link to="/terms-of-service">Terms of Service</Link><span> | </span>
               <Link to="/privacy-policy">Privacy Policy</Link>
-              <br />
             </div>
             <ul className="footer-links">
               <li><Link to="https://www.facebook.com/iamShakibKhanbd"><i className="fab fa-facebook"></i> Facebook</Link></li>
