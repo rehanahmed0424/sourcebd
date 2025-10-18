@@ -137,7 +137,8 @@ const response = await fetch(`${API}/api/user/profile`, {
         });
         
         if (userData.profilePicture) {
-          setImagePreview(`http://localhost:5000${userData.profilePicture}`);
+setImagePreview(`${API}${userData.profilePicture}`);
+
         }
       }
     } catch (error) {
@@ -161,7 +162,8 @@ const response = await fetch(`${API}/api/user/profile`, {
         zipCode: user.zipCode || ''
       });
       if (user.profilePicture) {
-        setImagePreview(`http://localhost:5000${user.profilePicture}`);
+setImagePreview(`${API}${user.profilePicture}`);
+
       }
       
       // Fetch fresh profile data from API
@@ -256,7 +258,7 @@ const response = await fetch(`${API}/api/user/profile`, {
         zipCode: user.zipCode || ''
       });
       if (user.profilePicture) {
-        setImagePreview(`http://localhost:5000${user.profilePicture}`);
+setImagePreview(`${API}${user.profilePicture}`);
       } else {
         setImagePreview('');
       }

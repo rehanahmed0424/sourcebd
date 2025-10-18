@@ -5,13 +5,13 @@ import './Wishlist.css';
 
 const Wishlist = () => {
   const { wishlistItems, removeFromWishlist } = useWishlist();
-
+const API = import.meta.env.VITE_API_URL;
   // Image URL helper function
   const getImageUrl = (imagePath) => {
     if (!imagePath) return '/images/placeholder.jpg';
     if (imagePath.startsWith('http') || imagePath.startsWith('data:')) return imagePath;
-    if (!imagePath.startsWith('/')) return `http://localhost:5000/uploads/${imagePath}`;
-    return `http://localhost:5000${imagePath}`;
+    if (!imagePath.startsWith('/')) return `${API}/uploads/${imagePath}`;
+    return `${API}${imagePath}`;
   };
 
   if (wishlistItems.length === 0) {

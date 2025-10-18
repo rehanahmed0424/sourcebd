@@ -35,7 +35,7 @@ const Register = () => {
     }
     
     try {
-      const response = await axios.post('http://localhost:5000/api/register', formData);
+const response = await axios.post(`${API}/api/register`, formData);
       if (response.data.message) {
         // Use AuthContext to automatically log in after registration
         login(response.data.token, response.data.user);

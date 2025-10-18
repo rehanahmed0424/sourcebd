@@ -54,11 +54,13 @@ const HomePage = () => {
     { _id: '1', text: "SourceBd has transformed how we source products from Bangladesh. The platform is easy to use, and we've found reliable suppliers for our textile business.", author: "Ahmed Rahman, Fashion Importer, UK" },
     { _id: '2', text: "As a small business owner, finding trustworthy suppliers was always a challenge. SourceBd's verification system gives me confidence in my sourcing decisions.", author: "Sarah Johnson, Boutique Owner, Australia" },
   ];
+const API = import.meta.env.VITE_API_URL;
 
   // Check if API is available
   const checkApiHealth = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/health');
+const response = await fetch(`${API}/api/health`);
+
       if (response.ok) {
         const data = await response.json();
         setApiStatus('connected');
@@ -75,7 +77,8 @@ const HomePage = () => {
   // Fetch data with fallback
   const fetchWithFallback = async (endpoint, fallbackEndpoint, fallbackDataFn) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/${endpoint}`);
+const response = await fetch(`${API}/api/${endpoint}`);
+
       if (response.ok) {
         const data = await response.json();
         return data;
@@ -87,7 +90,8 @@ const HomePage = () => {
       
       // Try fallback endpoint
       try {
-        const fallbackResponse = await fetch(`http://localhost:5000/api/fallback/${fallbackEndpoint}`);
+const fallbackResponse = await fetch(`${API}/api/fallback/${fallbackEndpoint}`);
+
         if (fallbackResponse.ok) {
           const fallbackData = await fallbackResponse.json();
           return fallbackData;
@@ -208,11 +212,15 @@ const HomePage = () => {
                 onClick={() => handleCategoryClick(category.name)}
               >
                 <div className="category-image">
-                  <img 
-                    src={category.image ? `http://localhost:5000${category.image}` : '/images/category-placeholder.jpg'} 
-                    alt={category.name}
-                    onError={(e) => handleImageError(e, `category ${category.name}`)}
-                  />
+<img 
+  src={
+    category.image
+      ? `${API}${category.image}`
+      : '/images/category-placeholder.jpg'
+  }
+  alt={category.name}
+  onError={(e) => handleImageError(e, `category ${category.name}`)}
+/>
                 </div>
                 <div className="category-content">
                   <h3>{category.name}</h3>
