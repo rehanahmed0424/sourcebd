@@ -13,13 +13,15 @@ const MyOrders = () => {
   useEffect(() => {
     fetchOrders();
   }, []);
+const API = import.meta.env.VITE_API_URL;
 
   const fetchOrders = async () => {
     if (!isAuthenticated) return;
     
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/orders', {
+const response = await fetch(`${API}/api/orders`, {
+
         headers: {
           'Content-Type': 'application/json',
           ...getAuthHeader()
@@ -41,7 +43,8 @@ const MyOrders = () => {
 
   const fetchOrderDetails = async (orderId) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/orders/${orderId}`, {
+await fetch(`${API}/api/orders/${orderId}`, {
+
         headers: {
           'Content-Type': 'application/json',
           ...getAuthHeader()

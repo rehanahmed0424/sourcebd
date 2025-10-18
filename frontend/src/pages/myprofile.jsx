@@ -52,6 +52,7 @@ const MyProfile = () => {
   const hideToast = () => {
     setToast(prev => ({ ...prev, show: false }));
   };
+const API = import.meta.env.VITE_API_URL;
 
   // Fetch user statistics
   const fetchUserStats = async () => {
@@ -59,7 +60,8 @@ const MyProfile = () => {
 
     try {
       // Fetch orders count
-      const ordersResponse = await fetch('http://localhost:5000/api/orders', {
+const orderResponse = await fetch(`${API}/api/orders`, {
+
         headers: {
           'Content-Type': 'application/json',
           ...getAuthHeader()
@@ -72,7 +74,8 @@ const MyProfile = () => {
       }
 
       // Fetch wishlist count
-      const wishlistResponse = await fetch('http://localhost:5000/api/wishlist', {
+const wishlistResponse = await fetch(`${API}/api/wishlist`, {
+
         headers: {
           'Content-Type': 'application/json',
           ...getAuthHeader()
@@ -86,7 +89,8 @@ const MyProfile = () => {
       }
 
       // Fetch RFQs count
-      const rfqsResponse = await fetch('http://localhost:5000/api/rfqs/count', {
+const rfqsResponse = await fetch(`${API}/api/rfqs/count`, {
+
         headers: {
           'Content-Type': 'application/json',
           ...getAuthHeader()
@@ -108,7 +112,8 @@ const MyProfile = () => {
     if (!isAuthenticated) return;
 
     try {
-      const response = await fetch('http://localhost:5000/api/user/profile', {
+const response = await fetch(`${API}/api/user/profile`, {
+
         headers: {
           'Content-Type': 'application/json',
           ...getAuthHeader()

@@ -75,13 +75,16 @@ const ProductDetails = () => {
 
   const currentPrice = getCurrentPrice();
   const totalPrice = currentPrice ? (currentPrice * quantity).toFixed(2) : null;
+const API = import.meta.env.VITE_API_URL;
 
   // Image URL helper function
   const getImageUrl = (imagePath) => {
     if (!imagePath) return '/images/product-placeholder.jpg';
     if (imagePath.startsWith('http') || imagePath.startsWith('data:')) return imagePath;
-    if (!imagePath.startsWith('/')) return `http://localhost:5000/uploads/${imagePath}`;
-    return `http://localhost:5000${imagePath}`;
+if (!imagePath.startsWith('/')) return `${API}/uploads/${imagePath}`;
+
+return `${API}${imagePath}`;
+
   };
 
   // Fetch product details from API
@@ -91,7 +94,8 @@ const ProductDetails = () => {
         setLoading(true);
         console.log('Fetching product with ID:', id);
         
-        const response = await fetch(`http://localhost:5000/api/products/${id}`);
+const response = await fetch(`${API}/api/products/${id}`);
+
         
         if (!response.ok) {
           throw new Error(`Product not found: ${response.status}`);
@@ -137,7 +141,8 @@ const ProductDetails = () => {
     }
 
     try {
-      const response = await fetch('http://localhost:5000/api/inquiries', {
+ const response = await fetch(`${API}/api/inquiries`, {
+
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

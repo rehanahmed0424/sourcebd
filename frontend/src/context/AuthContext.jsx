@@ -103,12 +103,15 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Add updateProfile function
+  const API = import.meta.env.VITE_API_URL;
+
 
 const updateProfile = async (profileData) => {
   try {
     const token = localStorage.getItem('sourcebd_token');
     
-    const response = await fetch('http://localhost:5000/api/user/profile', {
+const response = await fetch(`${API}/api/user/profile`, {
+
       method: 'PUT',
       headers: {
         'Authorization': `Bearer ${token}`
@@ -139,7 +142,8 @@ const updateProfile = async (profileData) => {
   // Add refreshUser function to sync with server
   const refreshUser = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/user/profile', {
+const response = await fetch(`${API}/api/user/profile`, {
+
         headers: {
           ...getAuthHeader()
         }
@@ -159,7 +163,8 @@ const updateProfile = async (profileData) => {
   // Add changePassword function
   const changePassword = async (currentPassword, newPassword) => {
     try {
-      const response = await fetch('http://localhost:5000/api/user/change-password', {
+const response = await fetch(`${API}/api/user/change-password`, {
+
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

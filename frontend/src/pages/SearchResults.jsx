@@ -9,6 +9,7 @@ const SearchResults = () => {
   const [error, setError] = useState(null);
   const location = useLocation();
   const navigate = useNavigate();
+const API = import.meta.env.VITE_API_URL;
 
   const searchParams = new URLSearchParams(location.search);
   const query = searchParams.get('q');
@@ -28,7 +29,8 @@ const SearchResults = () => {
         console.log('🔍 Searching for:', query);
         
         // Use the REAL search endpoint
-        const response = await fetch(`http://localhost:5000/api/search?q=${encodeURIComponent(query)}`);
+const response = await fetch(`${API}/api/search?q=${encodeURIComponent(query)}`);
+
         
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);

@@ -92,8 +92,11 @@ const AdminPanel = () => {
           default:
             return;
         }
+        const API = import.meta.env.VITE_API_URL;
 
-        const response = await fetch(`http://localhost:5000/api/${endpoint}`);
+
+const response = await fetch(`${API}/api/${endpoint}`);
+
         if (!response.ok) throw new Error(`Failed to fetch ${endpoint}`);
         const data = await response.json();
         
@@ -240,7 +243,8 @@ const handleAddData = async (e) => {
     const endpoint = `/api/${adminType}`;
     console.log('Submitting to:', endpoint);
     
-    const response = await fetch(`http://localhost:5000${endpoint}`, {
+const response = await fetch(`${API}${endpoint}`, {
+
       method: 'POST',
       body: formData,
     });
@@ -254,7 +258,8 @@ const handleAddData = async (e) => {
     setSuccess(`${adminType.slice(0, -1)} added successfully!`);
     
     // Refresh the data list
-    const refreshResponse = await fetch(`http://localhost:5000/api/${adminType}`);
+const refreshResponse = await fetch(`${API}/api/${adminType}`);
+
     if (refreshResponse.ok) {
       const refreshData = await refreshResponse.json();
       switch (adminType) {
@@ -287,7 +292,8 @@ const handleAddData = async (e) => {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/${adminType}/${id}`, {
+const response = await fetch(`${API}/api/${adminType}/${id}`, {
+
         method: 'DELETE',
       });
 

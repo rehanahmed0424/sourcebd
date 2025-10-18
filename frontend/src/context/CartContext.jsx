@@ -34,6 +34,8 @@ export const CartProvider = ({ children }) => {
     setCartCount(distinctItemCount);
   }, [cartItems]);
 
+  const API = import.meta.env.VITE_API_URL;
+
   // Load cart from backend API
   const loadCartFromBackend = async () => {
     try {
@@ -44,7 +46,8 @@ export const CartProvider = ({ children }) => {
         return;
       }
 
-      const response = await fetch('http://localhost:5000/api/cart', {
+const response = await fetch(`${API}/api/cart`, {
+
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -98,7 +101,7 @@ export const CartProvider = ({ children }) => {
 
       // Update each item in the backend cart
       for (const item of items) {
-        await fetch('http://localhost:5000/api/cart', {
+  await fetch(`${API}/api/cart`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,

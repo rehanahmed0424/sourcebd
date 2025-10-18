@@ -8,6 +8,7 @@ const Cart = () => {
   const { cartItems, updateQuantity, removeFromCart, getCartTotal } = useCart();
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [loadingRelated, setLoadingRelated] = useState(false);
+const API = import.meta.env.VITE_API_URL;
 
   // Fetch real products for "You Might Also Like" section
   useEffect(() => {
@@ -16,7 +17,8 @@ const Cart = () => {
       
       setLoadingRelated(true);
       try {
-        const response = await fetch('http://localhost:5000/api/products/featured');
+const response = await fetch(`${API}/api/products/featured`);
+
         if (response.ok) {
           const products = await response.json();
           setRelatedProducts(products.slice(0, 3));
