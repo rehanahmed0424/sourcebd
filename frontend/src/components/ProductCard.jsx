@@ -9,7 +9,7 @@ const ProductCard = ({ product }) => {
   const { isAuthenticated } = useAuth();
   const { addToWishlist, removeFromWishlist, wishlistItems } = useWishlist();
   const navigate = useNavigate();
-
+const API = import.meta.env.VITE_API_URL;
   // Check if product is in wishlist
   const isInWishlist = wishlistItems.some(item => item._id === product._id || item.id === product._id);
 
@@ -43,12 +43,20 @@ const ProductCard = ({ product }) => {
     }
   };
 
-  const getImageUrl = (imagePath) => {
-    if (!imagePath) return null;
-    if (imagePath.startsWith('http') || imagePath.startsWith('data:')) return imagePath;
-    if (!imagePath.startsWith('/')) return `http://localhost:5000/uploads/${imagePath}`;
-    return `http://localhost:5000${imagePath}`;
-  };
+const getImageUrl = (imagePath) => {
+  const BASE_URL = import.meta.env.VITE_API_URL || 'https://sourcebd-backend.onrender.com';
+
+  if (!imagePath) return '/images/placeholder.jpg';
+  if (imagePath.startsWith('http') || imagePath.startsWith('data:')) return imagePath;
+
+  // Normalize path — remove duplicate slashes
+  const normalizedPath = imagePath.startsWith('/') 
+    ? imagePath 
+    : `/uploads/${imagePath}`;
+
+  return `${BASE_URL}${normalizedPath}`;
+};
+
 
   const imageUrl = getImageUrl(product.image);
 

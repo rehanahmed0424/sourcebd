@@ -65,13 +65,14 @@ const AdminPanel = () => {
     newTiers[index][field] = value;
     setTieredPricing(newTiers);
   };
-
+const API = import.meta.env.VITE_API_URL;
   // Image URL helper function
   const getImageUrl = (imagePath) => {
     if (!imagePath) return '/images/product-placeholder.jpg';
     if (imagePath.startsWith('http') || imagePath.startsWith('data:')) return imagePath;
-    if (!imagePath.startsWith('/')) return `http://localhost:5000/uploads/${imagePath}`;
-    return `http://localhost:5000${imagePath}`;
+
+if (!imagePath.startsWith('/')) return `${API}/uploads/${imagePath}`;
+return `${API}${imagePath}`;
   };
 
   // Fetch data based on current tab

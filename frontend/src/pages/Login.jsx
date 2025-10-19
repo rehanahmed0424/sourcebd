@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-
+const API = import.meta.env.VITE_API_URL
 const Login = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
@@ -28,7 +28,7 @@ const Login = () => {
     }
 
     try {
-      const response = await axios.post('http://localhost:5000/api/login', formData);
+  const response = await axios.post(`${API}/api/login`, formData);
       if (response.data.message === 'Login successful') {
         // Use the AuthContext login function with token and user data
         login(response.data.token, response.data.user);
